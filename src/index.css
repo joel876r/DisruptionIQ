@@ -9,209 +9,105 @@
     padding: 0;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    background: radial-gradient(circle at 50% 20%, #062b25 0%, #031418 60%, #01080a 100%);
+    background: radial-gradient(circle at 50% 10%, #061e1b 0%, #040e1b 45%, #02060f 100%);
     color: #f8fafc;
     font-family: 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 }
 
-/* Glassmorphism utility */
+/* Glassmorphism Panels */
 .glass-panel {
-  background: rgba(10, 31, 36, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(52, 211, 153, 0.25);
+  background: rgba(10, 24, 40, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(52, 211, 153, 0.22);
 }
 
 .glass-gold {
-  background: rgba(45, 30, 10, 0.7);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(250, 204, 21, 0.35);
+  background: rgba(35, 25, 8, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 158, 11, 0.4);
 }
 
-/* Smooth breathing pulse */
-@keyframes breathing {
+.glass-card {
+  background: rgba(9, 17, 34, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(56, 189, 248, 0.25);
+}
+
+/* Soft breathing pulse for resting state */
+@keyframes softBreathe {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.25), 0 0 60px rgba(6, 182, 212, 0.15);
   }
   50% {
     transform: scale(1.03);
-    box-shadow: 0 0 60px rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 45px rgba(16, 185, 129, 0.45), 0 0 90px rgba(6, 182, 212, 0.3);
   }
 }
 
-.animate-breathing {
-  animation: breathing 3s ease-in-out infinite;
+.animate-breathe {
+  animation: softBreathe 3.2s ease-in-out infinite;
 }
 
-/* Microphone active ripple */
-@keyframes voiceRipple {
+/* Massive Microphone Active Ripple */
+@keyframes micActiveWave {
   0% {
-    transform: scale(0.92);
+    transform: scale(0.94);
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8), 0 0 0 0 rgba(245, 158, 11, 0.6);
   }
-  70% {
+  65% {
     transform: scale(1.06);
-    box-shadow: 0 0 0 32px rgba(239, 68, 68, 0), 0 0 0 54px rgba(245, 158, 11, 0);
+    box-shadow: 0 0 0 40px rgba(239, 68, 68, 0), 0 0 0 70px rgba(245, 158, 11, 0);
   }
   100% {
-    transform: scale(0.92);
+    transform: scale(0.94);
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 0 0 0 rgba(245, 158, 11, 0);
   }
 }
 
-.animate-voice-ripple {
-  animation: voiceRipple 1.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+.animate-mic-wave {
+  animation: micActiveWave 1.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
 
-/* Equalizer Bars */
-@keyframes dynamicBar {
+/* Speaking Waveform Bars */
+@keyframes waveBar {
   0%, 100% {
-    height: 12px;
+    height: 10px;
   }
   50% {
-    height: 52px;
+    height: 48px;
   }
 }
 
-.bar-1 { animation: dynamicBar 0.9s ease-in-out infinite 0.1s; }
-.bar-2 { animation: dynamicBar 1.2s ease-in-out infinite 0.3s; }
-.bar-3 { animation: dynamicBar 0.8s ease-in-out infinite 0.0s; }
-.bar-4 { animation: dynamicBar 1.1s ease-in-out infinite 0.2s; }
-.bar-5 { animation: dynamicBar 1.3s ease-in-out infinite 0.4s; }
+.bar-1 { animation: waveBar 0.9s ease-in-out infinite 0.1s; }
+.bar-2 { animation: waveBar 1.2s ease-in-out infinite 0.3s; }
+.bar-3 { animation: waveBar 0.8s ease-in-out infinite 0.0s; }
+.bar-4 { animation: waveBar 1.1s ease-in-out infinite 0.25s; }
+.bar-5 { animation: waveBar 1.3s ease-in-out infinite 0.4s; }
 
-/* Pure CSS Celebratory Confetti without images */
-@keyframes confettiFall {
-  0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(600px) rotate(720deg); opacity: 0; }
-}
-
-.confetti-particle {
-  position: absolute;
-  width: 10px;
-  height: 14px;
-  animation: confettiFall 3s linear infinite;
-}
-
-/* 3D Realistic Avatar Lifelike Animations */
-@keyframes avatarBreathe {
+/* Subtle finger tap guide animation */
+@keyframes fingerTap {
   0%, 100% {
-    transform: translateY(0px) scale(1);
+    transform: translateY(0);
   }
   50% {
-    transform: translateY(-3px) scale(1.015);
+    transform: translateY(-6px);
   }
 }
 
-.animate-avatar-breathe {
-  animation: avatarBreathe 3.6s ease-in-out infinite;
-}
-
-@keyframes headSpeaking {
-  0%, 100% {
-    transform: rotate(0deg) translateY(0px);
-  }
-  20% {
-    transform: rotate(-1.5deg) translateY(-2px);
-  }
-  45% {
-    transform: rotate(2deg) translateY(1px);
-  }
-  70% {
-    transform: rotate(-1deg) translateY(-1px);
-  }
-  85% {
-    transform: rotate(1deg) translateY(0px);
-  }
-}
-
-.animate-head-speaking {
-  animation: headSpeaking 2s ease-in-out infinite;
-}
-
-@keyframes mouthLipSync {
-  0%, 100% {
-    transform: scaleY(0.2) scaleX(0.85);
-    opacity: 0.6;
-  }
-  25% {
-    transform: scaleY(1.3) scaleX(1.1);
-    opacity: 0.95;
-  }
-  50% {
-    transform: scaleY(0.4) scaleX(0.9);
-    opacity: 0.7;
-  }
-  75% {
-    transform: scaleY(1.1) scaleX(1.05);
-    opacity: 0.9;
-  }
-}
-
-.animate-lip-sync {
-  animation: mouthLipSync 0.28s ease-in-out infinite;
-  transform-origin: center;
-}
-
-@keyframes eyeBlinkAnim {
-  0%, 96%, 100% {
-    transform: scaleY(1);
-  }
-  98% {
-    transform: scaleY(0.1);
-  }
-}
-
-.animate-eye-blink {
-  animation: eyeBlinkAnim 3.8s ease-in-out infinite;
-  transform-origin: center;
-}
-
-@keyframes handNamaste {
-  0%, 100% {
-    transform: translateY(0px) scale(1);
-  }
-  50% {
-    transform: translateY(-4px) scale(1.02);
-  }
-}
-
-.animate-namaste {
-  animation: handNamaste 2.5s ease-in-out infinite;
-}
-
-@keyframes handExplain {
-  0%, 100% {
-    transform: rotate(0deg) translateY(0);
-  }
-  33% {
-    transform: rotate(-4deg) translateY(-3px) translateX(2px);
-  }
-  66% {
-    transform: rotate(3deg) translateY(-1px) translateX(-2px);
-  }
-}
-
-.animate-explain {
-  animation: handExplain 2.2s ease-in-out infinite;
-}
-
-@keyframes goldAuraGlow {
-  0%, 100% {
-    box-shadow: 0 0 25px rgba(245, 158, 11, 0.4), inset 0 0 20px rgba(245, 158, 11, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 45px rgba(245, 158, 11, 0.7), inset 0 0 35px rgba(245, 158, 11, 0.35);
-  }
-}
-
-.animate-gold-aura {
-  animation: goldAuraGlow 2.8s ease-in-out infinite;
+.animate-finger-tap {
+  animation: fingerTap 1.6s ease-in-out infinite;
 }
 
 /* Accessible high-contrast focus rings */
-button:focus-visible, a:focus-visible {
-  outline: 4px solid #facc15 !important;
-  outline-offset: 4px;
+button:focus-visible, a:focus-visible, input:focus-visible {
+  outline: 3px solid #facc15 !important;
+  outline-offset: 3px;
 }
