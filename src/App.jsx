@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import HolographicVoiceHead from './components/HolographicVoiceHead';
+import TamilAvatarVoiceGuide from './components/TamilAvatarVoiceGuide';
 import PulsingVoiceCore from './components/PulsingVoiceCore';
 import OfficialReceiptModal from './components/OfficialReceiptModal';
 import { useSpeech } from './hooks/useSpeech';
@@ -124,8 +124,12 @@ export default function App() {
           {/* Subtle Ambient Light */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Futuristic Cybernetic Holographic Head */}
-          <HolographicVoiceHead status={status} />
+          {/* 3D Realistic Tamil AI Voice Guide with Actions & Lip-Sync */}
+          <TamilAvatarVoiceGuide
+            status={status}
+            currentStep={currentStep}
+            applicantName={applicationData?.applicant_name}
+          />
 
           {/* Dialogue Speech Bubble */}
           <div className="w-full my-3 p-4 sm:p-5 rounded-2xl bg-[#09153a]/90 border-2 border-cyan-400/50 shadow-xl backdrop-blur-md relative z-10">

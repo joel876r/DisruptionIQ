@@ -94,6 +94,122 @@
   animation: confettiFall 3s linear infinite;
 }
 
+/* 3D Realistic Avatar Lifelike Animations */
+@keyframes avatarBreathe {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.015);
+  }
+}
+
+.animate-avatar-breathe {
+  animation: avatarBreathe 3.6s ease-in-out infinite;
+}
+
+@keyframes headSpeaking {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0px);
+  }
+  20% {
+    transform: rotate(-1.5deg) translateY(-2px);
+  }
+  45% {
+    transform: rotate(2deg) translateY(1px);
+  }
+  70% {
+    transform: rotate(-1deg) translateY(-1px);
+  }
+  85% {
+    transform: rotate(1deg) translateY(0px);
+  }
+}
+
+.animate-head-speaking {
+  animation: headSpeaking 2s ease-in-out infinite;
+}
+
+@keyframes mouthLipSync {
+  0%, 100% {
+    transform: scaleY(0.2) scaleX(0.85);
+    opacity: 0.6;
+  }
+  25% {
+    transform: scaleY(1.3) scaleX(1.1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scaleY(0.4) scaleX(0.9);
+    opacity: 0.7;
+  }
+  75% {
+    transform: scaleY(1.1) scaleX(1.05);
+    opacity: 0.9;
+  }
+}
+
+.animate-lip-sync {
+  animation: mouthLipSync 0.28s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes eyeBlinkAnim {
+  0%, 96%, 100% {
+    transform: scaleY(1);
+  }
+  98% {
+    transform: scaleY(0.1);
+  }
+}
+
+.animate-eye-blink {
+  animation: eyeBlinkAnim 3.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes handNamaste {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.02);
+  }
+}
+
+.animate-namaste {
+  animation: handNamaste 2.5s ease-in-out infinite;
+}
+
+@keyframes handExplain {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  33% {
+    transform: rotate(-4deg) translateY(-3px) translateX(2px);
+  }
+  66% {
+    transform: rotate(3deg) translateY(-1px) translateX(-2px);
+  }
+}
+
+.animate-explain {
+  animation: handExplain 2.2s ease-in-out infinite;
+}
+
+@keyframes goldAuraGlow {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.4), inset 0 0 20px rgba(245, 158, 11, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(245, 158, 11, 0.7), inset 0 0 35px rgba(245, 158, 11, 0.35);
+  }
+}
+
+.animate-gold-aura {
+  animation: goldAuraGlow 2.8s ease-in-out infinite;
+}
+
 /* Accessible high-contrast focus rings */
 button:focus-visible, a:focus-visible {
   outline: 4px solid #facc15 !important;

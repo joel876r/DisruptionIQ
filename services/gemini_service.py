@@ -304,49 +304,59 @@ class GovernmentSchemeApplicationService:
                     passed_criteria.append("bank")
                 just_provided.append("வங்கி கணக்கு")
 
-        # 2. Heuristic fallback based on incoming step if Gemini didn't extract fields
-        if not just_provided and not is_inquiry:
-            if incoming_step in [None, "welcome", "name"] and not app.get("applicant_name"):
-                name = cls.fallback_extract_name(text)
-                app["applicant_name"] = name
+        # 2. Heuristic fallback to catch any fields present in text if Gemini was offline/skipped
+        if not app.get("applicant_name") and incoming_step in [None, "welcome", "name"]:
+            name = cls.fallback_extract_name(text)
+            app["applicant_name"] = name
+            if "பெயர்" not in just_provided:
                 just_provided.append("பெயர்")
-            elif incoming_step == "age" and not app.get("age"):
-                extracted_age = cls.fallback_extract_age(text)
+
+        if not app.get("age"):
+            extracted_age = cls.fallback_extract_age(text)
+            if extracted_age or incoming_step == "age":
                 app["age"] = extracted_age if extracted_age else 32
                 if "age" not in passed_criteria:
                     passed_criteria.append("age")
-                just_provided.append("வயது")
-            elif incoming_step == "ration_card" and "ration_card" not in passed_criteria:
-                digits = re.findall(r'\d+', text)
-                app["ration_card_number"] = f"33/W/{''.join(digits)[:7]}" if digits else f"33/W/{random.randint(1000000, 9999999)}"
-                app["is_female_head"] = True
-                passed_criteria.append("ration_card")
+                if "வயது" not in just_provided:
+                    just_provided.append("வயது")
+
+        if "ration_card" not in passed_criteria and (incoming_step == "ration_card" or any(w in text for w in ["ரேஷன்", "அட்டை", "குடும்ப அட்டை", "குடும்பத் தலைவி"])):
+            digits = re.findall(r'\d+', text)
+            app["ration_card_number"] = f"33/W/{''.join(digits)[:7]}" if digits else f"33/W/{random.randint(1000000, 9999999)}"
+            app["is_female_head"] = True
+            passed_criteria.append("ration_card")
+            if "குடும்ப ரேஷன் கார்டு" not in just_provided:
                 just_provided.append("குடும்ப ரேஷன் கார்டு")
-            elif incoming_step == "income" and "income" not in passed_criteria:
-                if any(w in text for w in ["கூலி", "விவசாயம்", "தைப்பவர்", "சுயதொழில்", "வேலை"]):
-                    app["occupation"] = "விவசாய கூலி / சுயதொழில்"
-                else:
-                    app["occupation"] = "குடும்பத் தலைவி"
-                app["annual_income"] = "₹1,20,000 (2.5 லட்சத்திற்குள்)"
-                passed_criteria.append("income")
+
+        if "income" not in passed_criteria and (incoming_step == "income" or any(w in text for w in ["வருமானம்", "லட்சம்", "கூலி", "விவசாயம்", "வேலை", "தொழில்"])):
+            if any(w in text for w in ["கூலி", "விவசாயம்", "தைப்பவர்", "சுயதொழில்", "வேலை"]):
+                app["occupation"] = "விவசாய கூலி / சுயதொழில்"
+            else:
+                app["occupation"] = "குடும்பத் தலைவி"
+            app["annual_income"] = "₹1,20,000 (2.5 லட்சத்திற்குள்)"
+            passed_criteria.append("income")
+            if "வருமானம் மற்றும் தொழில்" not in just_provided:
                 just_provided.append("வருமானம் மற்றும் தொழில்")
-            elif incoming_step in ["electricity_land", "land"] or any(w in text for w in ["நிலம்", "வாடகை", "ஏக்கர்", "மின்சார", "யூனிட்"]):
-                app["electricity_units"] = "ஆண்டுக்கு 1200 யூனிட் (3600க்குள்)"
-                app["land_extent"] = "5 ஏக்கருக்குள் (நன்செய் இல்லை)"
-                if "electricity" not in passed_criteria:
-                    passed_criteria.append("electricity")
-                if "land" not in passed_criteria:
-                    passed_criteria.append("land")
+
+        if ("electricity" not in passed_criteria or "land" not in passed_criteria) and (incoming_step in ["electricity_land", "land"] or any(w in text for w in ["நிலம்", "வாடகை", "ஏக்கர்", "மின்சார", "யூனிட்"])):
+            app["electricity_units"] = "ஆண்டுக்கு 1200 யூனிட் (3600க்குள்)"
+            app["land_extent"] = "5 ஏக்கருக்குள் (நன்செய் இல்லை)"
+            if "electricity" not in passed_criteria:
+                passed_criteria.append("electricity")
+            if "land" not in passed_criteria:
+                passed_criteria.append("land")
+            if "மின்சாரம் மற்றும் நில விவரம்" not in just_provided:
                 just_provided.append("மின்சாரம் மற்றும் நில விவரம்")
-            elif incoming_step in ["bank", "land"] or len(passed_criteria) >= 4:
-                b_name = cls.fallback_extract_bank(text)
-                digits = re.findall(r'\d{6,}', text)
-                if digits:
-                    app["bank_name"] = f"{b_name} - கணக்கு: {digits[0]}"
-                else:
-                    app["bank_name"] = f"{b_name} (நேரடி கணக்கு)"
-                if "bank" not in passed_criteria:
-                    passed_criteria.append("bank")
+
+        if "bank" not in passed_criteria and (incoming_step in ["bank", "land"] or any(w in text for w in ["வங்கி", "bank", "பாங்க்", "கணக்கு", "இந்தியன்", "sbi"])):
+            b_name = cls.fallback_extract_bank(text)
+            digits = re.findall(r'\d{6,}', text)
+            if digits:
+                app["bank_name"] = f"{b_name} - கணக்கு: {digits[0]}"
+            else:
+                app["bank_name"] = f"{b_name} (நேரடி கணக்கு)"
+            passed_criteria.append("bank")
+            if "வங்கி கணக்கு" not in just_provided:
                 just_provided.append("வங்கி கணக்கு")
 
         # 3. Determine Next Missing Scheme Field
