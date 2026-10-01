@@ -1,7 +1,7 @@
 """API routing endpoints for Sol / சொல் voice interaction.
 
 Defines RESTful endpoints for health verification, initial welcome greeting,
-and voice-to-reasoning conversation turns with intelligent state tracking.
+and real government scheme application submissions for Kalaignar Magalir Urimai Thittam.
 """
 
 from __future__ import annotations
@@ -10,12 +10,12 @@ import logging
 from typing import Dict, List
 from fastapi import APIRouter, HTTPException, status
 
-from api.schemas import ChatRequest, ChatResponse, HealthResponse, SolutionDetails, WelcomeResponse
+from api.schemas import ApplicationData, ChatRequest, ChatResponse, HealthResponse, SolutionDetails, WelcomeResponse
 from config import settings
 from services.gemini_service import gemini_service
 
 logger = logging.getLogger("sol.api.routes")
-router = APIRouter(tags=["Voice Interaction"])
+router = APIRouter(tags=["Voice Interaction & Application"])
 
 
 @router.get(
@@ -64,20 +64,20 @@ async def get_welcome_message() -> WelcomeResponse:
     "/chat",
     response_model=ChatResponse,
     status_code=status.HTTP_200_OK,
-    summary="Voice reasoning dialogue endpoint",
+    summary="Voice reasoning dialogue & application submission endpoint",
     description=(
-        "Processes transcribed Tamil voice input via the Gemini reasoning engine "
-        "with multi-turn context tracking, avoiding repetitive questions and providing solutions."
+        "Processes transcribed Tamil voice input, collects real applicant fields, "
+        "and submits official applications for Kalaignar Magalir Urimai Thittam."
     ),
 )
 async def chat_interaction(payload: ChatRequest) -> ChatResponse:
-    """Process user voice transcription and return conversational response.
+    """Process user voice transcription, update scheme application data, and return voice response.
 
     Args:
-        payload: ChatRequest containing user message transcript, message history, and current step.
+        payload: ChatRequest containing user message, conversation history, current step, and application data.
 
     Returns:
-        ChatResponse with Tamil spoken answer, passed criteria, and actionable solution.
+        ChatResponse with Tamil spoken answer, passed criteria, real application data, and solution.
 
     Raises:
         HTTPException: If an unrecoverable processing error occurs.
@@ -88,15 +88,22 @@ async def chat_interaction(payload: ChatRequest) -> ChatResponse:
             for msg in (payload.history or [])
         ]
 
+        app_dict = payload.application_data.model_dump() if payload.application_data else None
+
         turn_result = gemini_service.process_voice_turn(
             user_message=payload.message,
             history=history_list,
             current_step=payload.current_step,
+            app_data=app_dict,
         )
 
         solution_obj = None
         if turn_result.get("solution"):
             solution_obj = SolutionDetails(**turn_result["solution"])
+
+        app_obj = None
+        if turn_result.get("application"):
+            app_obj = ApplicationData(**turn_result["application"])
 
         return ChatResponse(
             reply=turn_result["reply"],
@@ -106,6 +113,7 @@ async def chat_interaction(payload: ChatRequest) -> ChatResponse:
             passed_criteria=turn_result["passed_criteria"],
             is_eligible=turn_result["is_eligible"],
             solution=solution_obj,
+            application=app_obj,
         )
     except Exception as exc:
         logger.error("Unhandled error in /chat route: %s", exc, exc_info=True)

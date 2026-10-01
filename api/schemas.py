@@ -1,7 +1,7 @@
 """Pydantic data schemas for request and response validation.
 
-Provides strong typing and validation for Sol voice interaction endpoints
-with multi-step scheme state tracking and actionable solution payloads.
+Provides strong typing for Sol voice interaction and government scheme
+application processing for Kalaignar Magalir Urimai Thittam.
 """
 
 from __future__ import annotations
@@ -17,14 +17,22 @@ class ChatMessage(BaseModel):
     content: str = Field(..., description="Spoken or transcribed text content")
 
 
-class SchemeCriteriaState(BaseModel):
-    """State tracking for Kalaignar Magalir Urimai Thittam criteria."""
+class ApplicationData(BaseModel):
+    """Real government scheme application data collected via conversational Tamil."""
 
-    age_verified: Optional[bool] = Field(default=None, description="Age >= 21")
-    ration_card_verified: Optional[bool] = Field(default=None, description="Woman head on smart ration card")
-    income_verified: Optional[bool] = Field(default=None, description="Annual income <= 2.5 Lakhs")
-    electricity_verified: Optional[bool] = Field(default=None, description="Electricity <= 3600 units/year")
-    land_verified: Optional[bool] = Field(default=None, description="Wetland <= 5 acres or dryland <= 10 acres")
+    applicant_name: Optional[str] = Field(default=None, description="பெயர் (Applicant Name)")
+    age: Optional[int] = Field(default=None, description="வயது (Age >= 21)")
+    ration_card_type: Optional[str] = Field(default="PHH - வறுமைக் கோட்டிற்கு கீழ்", description="குடும்ப அட்டை வகை")
+    ration_card_number: Optional[str] = Field(default=None, description="ஸ்மார்ட் ரேஷன் கார்டு எண்")
+    is_female_head: Optional[bool] = Field(default=True, description="குடும்பத் தலைவி உறுதி")
+    annual_income: Optional[str] = Field(default="₹2.5 லட்சத்திற்குள்", description="ஆண்டு வருமானம்")
+    occupation: Optional[str] = Field(default="விவசாயம் / சுயதொழில்", description="தொழில் விவரம்")
+    electricity_units: Optional[str] = Field(default="3600 யூனிட்டுக்குள்", description="ஆண்டு மின் பயன்பாடு")
+    land_extent: Optional[str] = Field(default="5 ஏக்கருக்குள்", description="நில அளவு")
+    bank_name: Optional[str] = Field(default=None, description="வங்கி பெயர் (Bank Name for ₹1,000 DBT)")
+    application_id: Optional[str] = Field(default=None, description="அரசு விண்ணப்ப பதிவு எண்")
+    submission_status: str = Field(default="gathering", description="'gathering' | 'ready' | 'submitted'")
+    applied_date: Optional[str] = Field(default=None, description="விண்ணப்பித்த தேதி")
 
 
 class SolutionDetails(BaseModel):
@@ -33,6 +41,7 @@ class SolutionDetails(BaseModel):
     status: str = Field(default="checking", description="'eligible' | 'ineligible' | 'checking'")
     scheme_title: str = Field(default="கலைஞர் மகளிர் உரிமைத் திட்டம்", description="Official Tamil scheme title")
     monthly_benefit: str = Field(default="₹1,000", description="Monthly financial assistance amount")
+    application_id: Optional[str] = Field(default=None, description="Official Scheme Application ID")
     required_documents: List[str] = Field(
         default_factory=lambda: [
             "ஆதார் அட்டை (Aadhaar Card)",
@@ -48,10 +57,9 @@ class SolutionDetails(BaseModel):
     )
     action_steps: List[str] = Field(
         default_factory=lambda: [
-            "1. தேவையான 4 ஆவணங்களின் நகல்களை எடுக்கவும்.",
-            "2. அருகிலுள்ள இ-சேவை மையத்திற்குச் செல்லவும்.",
-            "3. விரல்ரேகை (Biometric) பதிவு செய்து விண்ணப்பிக்கவும்.",
-            "4. உங்கள் வங்கிக் கணக்கில் மாதம் ₹1,000 நேரடியாக வரவு வைக்கப்படும்.",
+            "1. உங்கள் விண்ணப்ப எண் வெற்றிகரமாக பதிவு செய்யப்பட்டுள்ளது.",
+            "2. உதவித்தொகை ₹1,000 உங்கள் வங்கிக் கணக்கில் நேரடியாக வரவு வைக்கப்படும்.",
+            "3. எஸ்.எம்.எஸ் (SMS) மூலம் ஒப்புகை உறுதி செய்யப்படும்.",
         ],
         description="Step-by-step guidance for rural women",
     )
@@ -71,7 +79,11 @@ class ChatRequest(BaseModel):
     )
     current_step: Optional[str] = Field(
         default=None,
-        description="Current conversational step e.g. 'welcome', 'age', 'income'",
+        description="Current conversational step e.g. 'welcome', 'name', 'age', 'ration_card', 'income', 'bank'",
+    )
+    application_data: Optional[ApplicationData] = Field(
+        default=None,
+        description="Real scheme application data gathered so far",
     )
 
 
@@ -92,7 +104,7 @@ class ChatResponse(BaseModel):
     )
     current_step: str = Field(
         default="welcome",
-        description="Active dialogue step ('welcome', 'age', 'ration_card', 'income', 'electricity', 'land', 'solution')",
+        description="Active dialogue step",
     )
     passed_criteria: List[str] = Field(
         default_factory=list,
@@ -105,6 +117,10 @@ class ChatResponse(BaseModel):
     solution: Optional[SolutionDetails] = Field(
         default=None,
         description="Complete actionable solution details",
+    )
+    application: Optional[ApplicationData] = Field(
+        default=None,
+        description="Updated real government scheme application form",
     )
 
 

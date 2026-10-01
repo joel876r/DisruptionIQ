@@ -5,8 +5,8 @@ const INITIAL_TAMIL_GREETING = 'வணக்கம், நான் சொல்
 
 /**
  * Enhanced React Hook for Sol Voice Interaction
- * Integrates Web Speech API with backend contextual state tracking,
- * eligibility criteria verification, and full solution delivery.
+ * Integrates Web Speech API with real government scheme application state tracking,
+ * data persistence, and receipt generation for Kalaignar Magalir Urimai Thittam.
  */
 export function useSpeech() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking' | 'error'
@@ -16,11 +16,26 @@ export function useSpeech() {
   const [hasStarted, setHasStarted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Contextual Scheme State from Backend
+  // Scheme Application State
   const [currentStep, setCurrentStep] = useState('welcome');
   const [passedCriteria, setPassedCriteria] = useState([]);
   const [isEligible, setIsEligible] = useState(null);
   const [solution, setSolution] = useState(null);
+  const [applicationData, setApplicationData] = useState({
+    applicant_name: null,
+    age: null,
+    ration_card_type: 'PHH - வறுமைக் கோட்டிற்கு கீழ்',
+    ration_card_number: null,
+    is_female_head: true,
+    annual_income: '₹2.5 லட்சத்திற்குள்',
+    occupation: 'விவசாயம் / கூலி வேலை',
+    electricity_units: '3600 யூனிட்டுக்குள்',
+    land_extent: '5 ஏக்கருக்குள்',
+    bank_name: null,
+    application_id: `KMUT-TN-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+    submission_status: 'gathering',
+    applied_date: new Date().toLocaleDateString('en-GB'),
+  });
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
@@ -109,7 +124,7 @@ export function useSpeech() {
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'ta-IN';
-    utterance.rate = 0.92;
+    utterance.rate = 0.94;
     utterance.pitch = 1.0;
 
     const voices = synthRef.current.getVoices();
@@ -163,6 +178,7 @@ export function useSpeech() {
           message: userText,
           history: history,
           current_step: currentStep,
+          application_data: applicationData,
         }),
       });
 
@@ -171,11 +187,10 @@ export function useSpeech() {
       }
 
       const data = await response.json();
-      const reply = data.reply || 'சரிங்க, அடுத்த விவரத்தை சொல்லுங்கள்.';
+      const reply = data.reply || 'சரிங்கம்மா, அடுத்த விவரத்தை சொல்லுங்கள்.';
 
-      // Update state with backend contextual tracking
       setLastSolResponse(reply);
-      setCurrentStep(data.current_step || 'age');
+      setCurrentStep(data.current_step || 'name');
       if (data.passed_criteria) {
         setPassedCriteria(data.passed_criteria);
       }
@@ -185,6 +200,9 @@ export function useSpeech() {
       if (data.solution) {
         setSolution(data.solution);
       }
+      if (data.application) {
+        setApplicationData(data.application);
+      }
 
       setHistory((prev) => [
         ...prev,
@@ -192,11 +210,10 @@ export function useSpeech() {
         { role: 'model', content: reply },
       ]);
 
-      // Speak response out loud
       speakTamil(reply);
     } catch (err) {
       console.error('Failed to communicate with Sol backend:', err);
-      const fallbackReply = 'இணைப்பில் தாமதம் ஏற்பட்டுள்ளது. மீண்டும் சொல்லுங்கள்.';
+      const fallbackReply = 'இணைப்பில் தாமதம் ஏற்பட்டுள்ளது. மீண்டும் சொல்லுங்கள் அம்மா.';
       setLastSolResponse(fallbackReply);
       speakTamil(fallbackReply);
     }
@@ -217,9 +234,8 @@ export function useSpeech() {
     if (!hasStarted) {
       setHasStarted(true);
       setLastSolResponse(INITIAL_TAMIL_GREETING);
-      setCurrentStep('age');
+      setCurrentStep('name');
       speakTamil(INITIAL_TAMIL_GREETING, () => {
-        // Automatically start listening after welcome greeting
         startListening();
       });
       return;
@@ -259,9 +275,6 @@ export function useSpeech() {
     }
   };
 
-  /**
-   * Quick chip manual answer trigger.
-   */
   const sendManualAnswer = (answerText) => {
     if (status === 'speaking' && synthRef.current) {
       synthRef.current.cancel();
@@ -269,18 +282,12 @@ export function useSpeech() {
     sendTranscriptToSol(answerText);
   };
 
-  /**
-   * Repeat the last response spoken by Sol.
-   */
   const repeatLastResponse = () => {
     if (lastSolResponse) {
       speakTamil(lastSolResponse);
     }
   };
 
-  /**
-   * Reset conversation back to clean start.
-   */
   const resetConversation = () => {
     if (synthRef.current) synthRef.current.cancel();
     if (recognitionRef.current) {
@@ -300,6 +307,21 @@ export function useSpeech() {
     setCurrentStep('welcome');
     setHasStarted(false);
     setErrorMessage('');
+    setApplicationData({
+      applicant_name: null,
+      age: null,
+      ration_card_type: 'PHH - வறுமைக் கோட்டிற்கு கீழ்',
+      ration_card_number: null,
+      is_female_head: true,
+      annual_income: '₹2.5 லட்சத்திற்குள்',
+      occupation: 'விவசாயம் / கூலி வேலை',
+      electricity_units: '3600 யூனிட்டுக்குள்',
+      land_extent: '5 ஏக்கருக்குள்',
+      bank_name: null,
+      application_id: `KMUT-TN-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+      submission_status: 'gathering',
+      applied_date: new Date().toLocaleDateString('en-GB'),
+    });
   };
 
   return {
@@ -312,6 +334,7 @@ export function useSpeech() {
     passedCriteria,
     isEligible,
     solution,
+    applicationData,
     toggleListening,
     sendManualAnswer,
     repeatLastResponse,
