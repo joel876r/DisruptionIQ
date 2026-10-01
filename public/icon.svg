@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="solGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+  </defs>
+  <!-- Background Disc -->
+  <circle cx="256" cy="256" r="240" fill="url(#solGrad)" stroke="#facc15" stroke-width="12" />
+  
+  <!-- Outer Sound Pulse Rings -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#bbf7d0" stroke-width="4" stroke-opacity="0.5" stroke-dasharray="10 10" />
+  
+  <!-- Microphone Body -->
+  <rect x="216" y="140" width="80" height="150" rx="40" fill="#ffffff" />
+  
+  <!-- Microphone Stand Arc -->
+  <path d="M176 250 C176 310, 336 310, 336 250" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" />
+  
+  <!-- Stand Stem & Base -->
+  <line x1="256" y1="310" x2="256" y2="370" stroke="#ffffff" stroke-width="22" stroke-linecap="round" />
+  <line x1="200" y1="370" x2="312" y2="370" stroke="#ffffff" stroke-width="22" stroke-linecap="round" />
+
+  <!-- Tamil Text Motif 'சொல்' -->
+  <text x="256" y="440" font-family="system-ui, sans-serif" font-size="44" font-weight="900" fill="#facc15" text-anchor="middle">சொல்</text>
+</svg>

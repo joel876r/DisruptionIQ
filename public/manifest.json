@@ -1,0 +1,19 @@
+{
+  "name": "Sol / சொல் - Voice Assistant",
+  "short_name": "Sol / சொல்",
+  "description": "Zero-UI Tamil Voice Assistant for Kalaignar Magalir Urimai Thittam",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary",
+  "lang": "ta-IN",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ta">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Branding & PWA Configuration -->
+    <title>Sol / சொல் - Zero-UI Voice Assistant</title>
+    <meta name="description" content="Sol / சொல்: Zero-UI voice assistant helping rural Indian women access the Kalaignar Magalir Urimai Thittam scheme in Tamil." />
+    <meta name="theme-color" content="#16a34a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Sol / சொல்" />
+    
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Google Noto Sans Tamil & Inter font fallback -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-sol-background text-sol-text min-h-screen selection:bg-sol-primary selection:text-white antialiased font-tamil overflow-x-hidden">
+    <noscript>
+      <div style="padding: 20px; color: white; background-color: #dc2626; text-align: center; font-size: 1.2rem;">
+        இந்த செயலியைப் பயன்படுத்த ஜாவாஸ்கிரிப்ட் (JavaScript) இயக்கப்பட்டிருக்க வேண்டும். Please enable JavaScript to run Sol.
+      </div>
+    </noscript>
+    <div id="root" class="min-h-screen flex flex-col justify-between"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
