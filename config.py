@@ -25,7 +25,7 @@ class Settings:
 
     # Gemini API Configuration
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
     # Server Configuration
     HOST: str = os.getenv("HOST", "0.0.0.0")

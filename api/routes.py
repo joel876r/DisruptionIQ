@@ -1,7 +1,7 @@
 """API routing endpoints for Sol / சொல் voice interaction.
 
 Defines RESTful endpoints for health verification, initial welcome greeting,
-and voice-to-reasoning conversation turns.
+and voice-to-reasoning conversation turns with intelligent state tracking.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ import logging
 from typing import Dict, List
 from fastapi import APIRouter, HTTPException, status
 
-from api.schemas import ChatRequest, ChatResponse, HealthResponse, WelcomeResponse
+from api.schemas import ChatRequest, ChatResponse, HealthResponse, SolutionDetails, WelcomeResponse
 from config import settings
 from services.gemini_service import gemini_service
 
@@ -56,6 +56,7 @@ async def get_welcome_message() -> WelcomeResponse:
     return WelcomeResponse(
         message=greeting,
         language="ta-IN",
+        current_step="welcome",
     )
 
 
@@ -66,37 +67,45 @@ async def get_welcome_message() -> WelcomeResponse:
     summary="Voice reasoning dialogue endpoint",
     description=(
         "Processes transcribed Tamil voice input via the Gemini reasoning engine "
-        "and produces a concise Tamil response (max 2 sentences, 1 question at a time)."
+        "with multi-turn context tracking, avoiding repetitive questions and providing solutions."
     ),
 )
 async def chat_interaction(payload: ChatRequest) -> ChatResponse:
     """Process user voice transcription and return conversational response.
 
     Args:
-        payload: ChatRequest containing user message transcript and message history.
+        payload: ChatRequest containing user message transcript, message history, and current step.
 
     Returns:
-        ChatResponse with Tamil spoken answer and language tag.
+        ChatResponse with Tamil spoken answer, passed criteria, and actionable solution.
 
     Raises:
         HTTPException: If an unrecoverable processing error occurs.
     """
     try:
-        # Convert schema history into dictionaries for the reasoning engine
         history_list: List[Dict[str, str]] = [
             {"role": msg.role, "content": msg.content}
             for msg in (payload.history or [])
         ]
 
-        reply_text = gemini_service.generate_response(
+        turn_result = gemini_service.process_voice_turn(
             user_message=payload.message,
             history=history_list,
+            current_step=payload.current_step,
         )
 
+        solution_obj = None
+        if turn_result.get("solution"):
+            solution_obj = SolutionDetails(**turn_result["solution"])
+
         return ChatResponse(
-            reply=reply_text,
+            reply=turn_result["reply"],
             language="ta-IN",
             session_id=payload.session_id,
+            current_step=turn_result["current_step"],
+            passed_criteria=turn_result["passed_criteria"],
+            is_eligible=turn_result["is_eligible"],
+            solution=solution_obj,
         )
     except Exception as exc:
         logger.error("Unhandled error in /chat route: %s", exc, exc_info=True)

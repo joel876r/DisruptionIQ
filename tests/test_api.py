@@ -1,6 +1,7 @@
 """Unit tests for Sol / சொல் FastAPI routes using pytest and TestClient.
 
-Tests health check, welcome greeting, chat dialogue reasoning, and CORS settings.
+Tests health check, welcome greeting, chat dialogue reasoning, CORS settings,
+context state progression, and full scheme solution delivery.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ client = TestClient(app)
 
 
 def test_health_check_endpoint() -> None:
-    """Test unit 1: Verify the /health and /api/health endpoints return 200 OK and valid schema."""
+    """Test 1: Verify the /health and /api/health endpoints return 200 OK and valid schema."""
     response = client.get("/api/health")
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
@@ -24,31 +25,29 @@ def test_health_check_endpoint() -> None:
     assert "சொல்" in data["app"]
     assert "version" in data
 
-    # Also verify route at root /health
     root_response = client.get("/health")
     assert root_response.status_code == 200
     assert root_response.json()["status"] == "healthy"
 
 
 def test_welcome_message_endpoint() -> None:
-    """Test unit 2: Verify the /welcome endpoint returns the mandated Tamil opening greeting."""
+    """Test 2: Verify the /welcome endpoint returns the mandated Tamil opening greeting."""
     response = client.get("/api/welcome")
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
     assert "message" in data
-    # Mandated prompt requirement:
+    # Mandated requirement:
     # "Start the first interaction with 'வணக்கம், நான் சொல். நான் உங்களுக்கு எப்படி உதவ முடியும்?'"
     assert data["message"] == "வணக்கம், நான் சொல். நான் உங்களுக்கு எப்படி உதவ முடியும்?"
     assert data["language"] == "ta-IN"
 
-    # Also verify root /welcome
     root_response = client.get("/welcome")
     assert root_response.status_code == 200
     assert root_response.json()["message"] == WELCOME_MESSAGE
 
 
 def test_chat_interaction_dialogue() -> None:
-    """Test unit 3: Verify the /chat endpoint processes user messages and returns Tamil replies."""
+    """Test 3: Verify the /chat endpoint processes user messages and returns Tamil replies."""
     payload = {
         "message": "கலைஞர் மகளிர் உரிமைத் திட்டம் பற்றி சொல்லுங்கள்",
         "history": [],
@@ -63,23 +62,9 @@ def test_chat_interaction_dialogue() -> None:
     assert data["language"] == "ta-IN"
     assert data["session_id"] == "test-session-123"
 
-    # Multi-turn interaction test: provide age input
-    followup_payload = {
-        "message": "எனக்கு 28 வயது ஆகிறது",
-        "history": [
-            {"role": "user", "content": "கலைஞர் மகளிர் உரிமைத் திட்டம் பற்றி சொல்லுங்கள்"},
-            {"role": "model", "content": data["reply"]},
-        ],
-        "session_id": "test-session-123",
-    }
-    followup_response = client.post("/api/chat", json=followup_payload)
-    assert followup_response.status_code == 200
-    followup_data = followup_response.json()
-    assert len(followup_data["reply"]) > 0
-
 
 def test_cors_headers_configured() -> None:
-    """Test unit 4: Verify CORS preflight headers are properly exposed for web speech clients."""
+    """Test 4: Verify CORS preflight headers are properly exposed for web speech clients."""
     headers = {
         "Origin": "http://localhost:5173",
         "Access-Control-Request-Method": "POST",
@@ -88,3 +73,67 @@ def test_cors_headers_configured() -> None:
     response = client.options("/api/chat", headers=headers)
     assert response.status_code == 200
     assert "access-control-allow-origin" in response.headers
+
+
+def test_age_verification_progression() -> None:
+    """Test 5: Verify that stating age >= 21 marks age as verified and advances to ration_card."""
+    payload = {
+        "message": "எனக்கு 32 வயது ஆகிறது",
+        "history": [],
+        "current_step": "age",
+    }
+    response = client.post("/api/chat", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "age" in data["passed_criteria"]
+    assert data["current_step"] == "ration_card"
+    # Ensure response is in Tamil and does not re-ask age
+    assert "ரேஷன்" in data["reply"] or "குடும்ப" in data["reply"]
+
+
+def test_full_eligibility_flow_to_solution() -> None:
+    """Test 6: Verify that completing all criteria returns the final actionable solution payload."""
+    payload = {
+        "message": "நிலம் எதுவும் இல்லைங்க, வாடகை வீடுதான்",
+        "history": [
+            {"role": "user", "content": "எனக்கு 28 வயது"},
+            {"role": "user", "content": "குடும்ப அட்டை தலைவி நான்தான்"},
+            {"role": "user", "content": "ஆண்டு வருமானம் 1 லட்சம்"},
+            {"role": "user", "content": "மின்சார பயன்பாடு 800 யூனிட்"},
+        ],
+        "current_step": "land",
+    }
+    response = client.post("/api/chat", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_eligible"] is True
+    assert data["solution"] is not None
+    assert data["solution"]["status"] == "eligible"
+    assert data["solution"]["monthly_benefit"] == "₹1,000"
+    assert len(data["solution"]["required_documents"]) >= 4
+    assert "இ-சேவை" in data["solution"]["where_to_go"]
+
+
+def test_documents_inquiry_intent() -> None:
+    """Test 7: Verify user inquiry regarding required documents yields clear Tamil guidance."""
+    payload = {
+        "message": "விண்ணப்பிக்க என்னென்ன ஆவணங்கள் தேவை?",
+        "history": [],
+    }
+    response = client.post("/api/chat", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    # Must mention essential documents like Aadhaar, Ration card
+    assert "ஆதார்" in data["reply"] or "ரேஷன்" in data["reply"]
+
+
+def test_empty_message_resilience() -> None:
+    """Test 8: Verify empty user input is handled gracefully without 500 error."""
+    payload = {
+        "message": "",
+        "history": [],
+    }
+    response = client.post("/api/chat", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["reply"] == WELCOME_MESSAGE
