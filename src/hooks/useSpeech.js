@@ -4,9 +4,9 @@ import { audioCue } from '../utils/audioCue';
 const INITIAL_TAMIL_GREETING = 'வணக்கம், நான் சொல். நான் உங்களுக்கு எப்படி உதவ முடியும்?';
 
 /**
- * Custom React Hook for Voice Interaction via Browser Web Speech API
- * Integrates SpeechRecognition (ta-IN) and SpeechSynthesis (ta-IN)
- * with the Sol FastAPI reasoning backend.
+ * Enhanced React Hook for Sol Voice Interaction
+ * Integrates Web Speech API with backend contextual state tracking,
+ * eligibility criteria verification, and full solution delivery.
  */
 export function useSpeech() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking' | 'error'
@@ -15,6 +15,12 @@ export function useSpeech() {
   const [history, setHistory] = useState([]);
   const [hasStarted, setHasStarted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Contextual Scheme State from Backend
+  const [currentStep, setCurrentStep] = useState('welcome');
+  const [passedCriteria, setPassedCriteria] = useState([]);
+  const [isEligible, setIsEligible] = useState(null);
+  const [solution, setSolution] = useState(null);
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
@@ -62,7 +68,6 @@ export function useSpeech() {
         };
 
         recognition.onend = () => {
-          // If we weren't processing or speaking, return to idle
           setStatus((prev) => (prev === 'listening' ? 'idle' : prev));
         };
 
@@ -92,7 +97,7 @@ export function useSpeech() {
   }, []);
 
   /**
-   * Speak a text string in Tamil using native browser SpeechSynthesis.
+   * Speak text in Tamil using native browser SpeechSynthesis.
    */
   const speakTamil = useCallback((textToSpeak, onFinished) => {
     if (!synthRef.current) {
@@ -100,15 +105,13 @@ export function useSpeech() {
       return;
     }
 
-    // Cancel any ongoing speech
     synthRef.current.cancel();
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'ta-IN';
-    utterance.rate = 0.92; // Slightly slower, clear conversational pace for rural accessibility
+    utterance.rate = 0.92;
     utterance.pitch = 1.0;
 
-    // Pick best Tamil voice available on device
     const voices = synthRef.current.getVoices();
     const tamilVoice = voices.find(
       (v) => v.lang.toLowerCase().includes('ta-in') || v.lang.toLowerCase().includes('ta')
@@ -138,7 +141,7 @@ export function useSpeech() {
   }, []);
 
   /**
-   * Send the recognized Tamil transcript to the backend API reasoning engine.
+   * Send recognized or selected text to the backend reasoning engine.
    */
   const sendTranscriptToSol = async (userText) => {
     if (!userText || !userText.trim()) {
@@ -148,6 +151,7 @@ export function useSpeech() {
 
     setStatus('processing');
     setErrorMessage('');
+    setTranscript(userText);
 
     try {
       const response = await fetch('/api/chat', {
@@ -158,6 +162,7 @@ export function useSpeech() {
         body: JSON.stringify({
           message: userText,
           history: history,
+          current_step: currentStep,
         }),
       });
 
@@ -168,49 +173,58 @@ export function useSpeech() {
       const data = await response.json();
       const reply = data.reply || 'சரிங்க, அடுத்த விவரத்தை சொல்லுங்கள்.';
 
+      // Update state with backend contextual tracking
       setLastSolResponse(reply);
+      setCurrentStep(data.current_step || 'age');
+      if (data.passed_criteria) {
+        setPassedCriteria(data.passed_criteria);
+      }
+      if (data.is_eligible !== undefined && data.is_eligible !== null) {
+        setIsEligible(data.is_eligible);
+      }
+      if (data.solution) {
+        setSolution(data.solution);
+      }
+
       setHistory((prev) => [
         ...prev,
         { role: 'user', content: userText },
         { role: 'model', content: reply },
       ]);
 
-      // Automatically speak the response
+      // Speak response out loud
       speakTamil(reply);
     } catch (err) {
       console.error('Failed to communicate with Sol backend:', err);
-      // Fallback voice notification
-      const fallbackReply = 'இணைப்பில் தாமதம் ஏற்பட்டுள்ளது. உங்கள் பதிலை மீண்டும் சொல்லுங்கள்.';
+      const fallbackReply = 'இணைப்பில் தாமதம் ஏற்பட்டுள்ளது. மீண்டும் சொல்லுங்கள்.';
       setLastSolResponse(fallbackReply);
       speakTamil(fallbackReply);
     }
   };
 
   /**
-   * Main interaction trigger: toggles listening, starts the welcome greeting, or replays.
+   * Main interaction trigger: toggles listening or starts welcome flow.
    */
   const toggleListening = () => {
     setErrorMessage('');
 
-    // If currently speaking, stop it
     if (status === 'speaking') {
       if (synthRef.current) synthRef.current.cancel();
       setStatus('idle');
       return;
     }
 
-    // First interaction: speak the required greeting
     if (!hasStarted) {
       setHasStarted(true);
       setLastSolResponse(INITIAL_TAMIL_GREETING);
+      setCurrentStep('age');
       speakTamil(INITIAL_TAMIL_GREETING, () => {
-        // Automatically start listening after the welcome greeting finishes
+        // Automatically start listening after welcome greeting
         startListening();
       });
       return;
     }
 
-    // If currently listening, stop it
     if (status === 'listening') {
       if (recognitionRef.current) {
         try {
@@ -223,7 +237,6 @@ export function useSpeech() {
       return;
     }
 
-    // Otherwise start listening
     startListening();
   };
 
@@ -247,6 +260,16 @@ export function useSpeech() {
   };
 
   /**
+   * Quick chip manual answer trigger.
+   */
+  const sendManualAnswer = (answerText) => {
+    if (status === 'speaking' && synthRef.current) {
+      synthRef.current.cancel();
+    }
+    sendTranscriptToSol(answerText);
+  };
+
+  /**
    * Repeat the last response spoken by Sol.
    */
   const repeatLastResponse = () => {
@@ -255,13 +278,43 @@ export function useSpeech() {
     }
   };
 
+  /**
+   * Reset conversation back to clean start.
+   */
+  const resetConversation = () => {
+    if (synthRef.current) synthRef.current.cancel();
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {
+        // Ignore
+      }
+    }
+    setStatus('idle');
+    setTranscript('');
+    setLastSolResponse('');
+    setHistory([]);
+    setPassedCriteria([]);
+    setIsEligible(null);
+    setSolution(null);
+    setCurrentStep('welcome');
+    setHasStarted(false);
+    setErrorMessage('');
+  };
+
   return {
     status,
     transcript,
     lastSolResponse,
     hasStarted,
     errorMessage,
+    currentStep,
+    passedCriteria,
+    isEligible,
+    solution,
     toggleListening,
+    sendManualAnswer,
     repeatLastResponse,
+    resetConversation,
   };
 }
