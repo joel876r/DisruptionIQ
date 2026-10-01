@@ -15,6 +15,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
+try:
+    from google import genai
+    from google.genai import types
+    HAS_GOOGLE_GENAI_SDK = True
+except ImportError:
+    HAS_GOOGLE_GENAI_SDK = False
+
 from config import settings
 
 logger = logging.getLogger("sol.services.gemini")
@@ -38,13 +45,12 @@ class GovernmentSchemeApplicationService:
 
     @classmethod
     def call_gemini_extract_entities(cls, user_text: str) -> Optional[Dict[str, Any]]:
-        """Use Gemini to extract structured entities from conversational Tamil context."""
+        """Use official google-genai SDK (with REST fallback) to extract structured entities."""
         api_key = settings.GEMINI_API_KEY
         if not api_key or api_key == "your_gemini_api_key_here":
             return None
 
         model = settings.GEMINI_MODEL or "gemini-3.5-flash-lite"
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
         prompt = (
             "You are an expert Tamil NLP extractor for the Tamil Nadu Kalaignar Magalir Urimai Thittam scheme. "
@@ -66,16 +72,36 @@ class GovernmentSchemeApplicationService:
             f"User input text: \"{user_text}\""
         )
 
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "temperature": 0.1,
-                "maxOutputTokens": 250,
-            },
-        }
+        # 1. Primary: Official google-genai Python SDK
+        if HAS_GOOGLE_GENAI_SDK:
+            try:
+                client = genai.Client(api_key=api_key)
+                cfg = types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                    max_output_tokens=250,
+                )
+                res = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=cfg,
+                )
+                if res.text:
+                    return json.loads(res.text)
+            except Exception as sdk_exc:
+                logger.debug("google-genai SDK extract exception: %s", sdk_exc)
 
+        # 2. Secondary: Direct HTTP REST fallback
         try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "temperature": 0.1,
+                    "maxOutputTokens": 250,
+                },
+            }
             with httpx.Client(timeout=4.0) as client:
                 res = client.post(url, json=payload)
                 if res.status_code == 200:
@@ -95,14 +121,12 @@ class GovernmentSchemeApplicationService:
         details_summary: str,
         next_question: str,
     ) -> Optional[str]:
-        """Generate empathetic, warm conversational Tamil phrasing using Gemini."""
+        """Generate empathetic, warm conversational Tamil phrasing using official google-genai SDK."""
         api_key = settings.GEMINI_API_KEY
         if not api_key or api_key == "your_gemini_api_key_here":
             return None
 
         model = settings.GEMINI_MODEL or "gemini-3.5-flash-lite"
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-
         name_clause = f"Applicant's name is {applicant_name}." if applicant_name else "Applicant name is not known yet."
         prompt = (
             f"You are Sol (சொல்), a warm and compassionate Tamil Nadu government voice assistant. "
@@ -113,15 +137,34 @@ class GovernmentSchemeApplicationService:
             f"Acknowledge the details provided and clearly ask the next question."
         )
 
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.2,
-                "maxOutputTokens": 100,
-            },
-        }
+        # 1. Primary: Official google-genai Python SDK
+        if HAS_GOOGLE_GENAI_SDK:
+            try:
+                client = genai.Client(api_key=api_key)
+                cfg = types.GenerateContentConfig(
+                    temperature=0.2,
+                    max_output_tokens=100,
+                )
+                res = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=cfg,
+                )
+                if res.text:
+                    return res.text.strip()
+            except Exception as sdk_exc:
+                logger.debug("google-genai SDK reply exception: %s", sdk_exc)
 
+        # 2. Secondary: Direct HTTP REST fallback
         try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.2,
+                    "maxOutputTokens": 100,
+                },
+            }
             with httpx.Client(timeout=4.0) as client:
                 res = client.post(url, json=payload)
                 if res.status_code == 200:
