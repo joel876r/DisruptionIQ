@@ -5,7 +5,8 @@ const FIRST_INTERVIEW_PROMPT = 'வணக்கம் அம்மா! நான
 
 /**
  * Enhanced Web Speech & Google Neural Tamil TTS coordinator for Sol.
- * Prioritizes high-fidelity Google Tamil neural voice streaming with Web Speech API fallback.
+ * Uses React refs to completely eliminate stale closures, ensuring 100% reliable
+ * step-by-step interview progression.
  */
 export function useSpeech() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking' | 'error'
@@ -15,7 +16,7 @@ export function useSpeech() {
   const [hasStarted, setHasStarted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Scheme Application Data
+  // Scheme Application Data & Step
   const [currentStep, setCurrentStep] = useState('name');
   const [passedCriteria, setPassedCriteria] = useState([]);
   const [isEligible, setIsEligible] = useState(null);
@@ -35,6 +36,24 @@ export function useSpeech() {
     submission_status: 'gathering',
     applied_date: new Date().toLocaleDateString('en-GB'),
   });
+
+  // State Refs to prevent React stale closure bugs inside event listeners
+  const currentStepRef = useRef('name');
+  const applicationDataRef = useRef(applicationData);
+  const historyRef = useRef([]);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentStepRef.current = currentStep;
+  }, [currentStep]);
+
+  useEffect(() => {
+    applicationDataRef.current = applicationData;
+  }, [applicationData]);
+
+  useEffect(() => {
+    historyRef.current = history;
+  }, [history]);
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
@@ -61,7 +80,173 @@ export function useSpeech() {
     }
   }, []);
 
-  // Initialize SpeechSynthesis and SpeechRecognition
+  /**
+   * Speak out loud using Google Neural Tamil Audio Stream.
+   */
+  const playTamilAudio = useCallback((textToSpeak, audioUrl, onFinished) => {
+    stopAllAudio();
+    setStatus('speaking');
+
+    const streamUrl = audioUrl || `/api/tts?text=${encodeURIComponent(textToSpeak)}`;
+    const audio = new Audio(streamUrl);
+    activeAudioRef.current = audio;
+
+    let hasHandledEnd = false;
+    const triggerFinished = () => {
+      if (hasHandledEnd) return;
+      hasHandledEnd = true;
+      setStatus('idle');
+      activeAudioRef.current = null;
+      if (onFinished) onFinished();
+    };
+
+    audio.onplay = () => {
+      setStatus('speaking');
+      audioCue.playSuccess();
+    };
+
+    audio.onended = triggerFinished;
+
+    audio.onerror = () => {
+      console.warn('Google TTS stream error, falling back to Web Speech API');
+      if (synthRef.current) {
+        try {
+          synthRef.current.cancel();
+          const utterance = new SpeechSynthesisUtterance(textToSpeak);
+          utterance.lang = 'ta-IN';
+          utterance.rate = 0.95;
+          utterance.pitch = 1.0;
+
+          const voices = synthRef.current.getVoices();
+          const tamilVoice = voices.find(
+            (v) => v.lang.toLowerCase().includes('ta') || v.name.toLowerCase().includes('tamil')
+          );
+          if (tamilVoice) {
+            utterance.voice = tamilVoice;
+          }
+
+          utterance.onend = triggerFinished;
+          utterance.onerror = triggerFinished;
+
+          synthRef.current.speak(utterance);
+        } catch (e) {
+          triggerFinished();
+        }
+      } else {
+        triggerFinished();
+      }
+    };
+
+    audio.play().catch((err) => {
+      console.warn('Audio play autoplay restricted:', err);
+      // Fallback to Web Speech API or mark finished
+      if (synthRef.current) {
+        try {
+          const utterance = new SpeechSynthesisUtterance(textToSpeak);
+          utterance.lang = 'ta-IN';
+          utterance.onend = triggerFinished;
+          utterance.onerror = triggerFinished;
+          synthRef.current.speak(utterance);
+        } catch (e) {
+          triggerFinished();
+        }
+      } else {
+        triggerFinished();
+      }
+    });
+  }, [stopAllAudio]);
+
+  /**
+   * Send speech transcript or typed message to backend government interviewer.
+   */
+  const sendTranscriptToSol = useCallback(async (userText) => {
+    if (!userText || !userText.trim()) {
+      setStatus('idle');
+      return;
+    }
+
+    setStatus('processing');
+    setErrorMessage('');
+    setTranscript(userText);
+
+    try {
+      // Use REFS to ensure freshest state is transmitted
+      const activeStep = currentStepRef.current;
+      const activeApp = applicationDataRef.current;
+      const activeHistory = historyRef.current;
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userText,
+          history: activeHistory,
+          current_step: activeStep,
+          application_data: activeApp,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const reply = data.reply || 'சரிங்க அம்மா, அடுத்த விவரத்தை சொல்லுங்கள்.';
+      const nextStepVal = data.current_step || 'age';
+
+      // Update both Ref and State immediately
+      currentStepRef.current = nextStepVal;
+      setCurrentStep(nextStepVal);
+
+      setLastSolResponse(reply);
+
+      if (data.passed_criteria) {
+        setPassedCriteria(data.passed_criteria);
+      }
+      if (data.is_eligible !== undefined && data.is_eligible !== null) {
+        setIsEligible(data.is_eligible);
+      }
+      if (data.solution) {
+        setSolution(data.solution);
+      }
+      if (data.application) {
+        applicationDataRef.current = data.application;
+        setApplicationData(data.application);
+      }
+
+      const newHistory = [
+        ...activeHistory,
+        { role: 'user', content: userText },
+        { role: 'model', content: reply },
+      ];
+      historyRef.current = newHistory;
+      setHistory(newHistory);
+
+      // Play authentic Google Tamil speech audio
+      playTamilAudio(reply, data.audio_url, () => {
+        if (nextStepVal !== 'submitted') {
+          setTimeout(() => {
+            if (recognitionRef.current) {
+              try {
+                recognitionRef.current.start();
+              } catch (e) {
+                // Ignore
+              }
+            }
+          }, 300);
+        }
+      });
+    } catch (err) {
+      console.error('Failed to communicate with Sol backend:', err);
+      const fallbackReply = 'இணைப்பில் தாமதம் ஏற்பட்டுள்ளது. மீண்டும் சொல்லுங்கள் அம்மா.';
+      setLastSolResponse(fallbackReply);
+      playTamilAudio(fallbackReply, null);
+    }
+  }, [playTamilAudio]);
+
+  // Initialize SpeechSynthesis and SpeechRecognition with callback ref
   useEffect(() => {
     isComponentMounted.current = true;
     if (typeof window !== 'undefined') {
@@ -92,7 +277,7 @@ export function useSpeech() {
           console.warn('SpeechRecognition error:', event.error);
           audioCue.playError();
           if (event.error === 'no-speech') {
-            setErrorMessage('குரல் கேட்கவில்லை. மீண்டும் பொத்தானை அழுத்தி பேசவும் அல்லது கீழே தட்டச்சு செய்யவும்.');
+            setErrorMessage('குரல் கேட்கவில்லை. கீழே உள்ள பதில்களைத் தொடலாம் அல்லது தட்டச்சு செய்யலாம்.');
           } else if (event.error === 'not-allowed') {
             setErrorMessage('மைக்ரோஃபோன் அனுமதியை இயக்கவும் (Allow Microphone).');
           } else {
@@ -106,8 +291,6 @@ export function useSpeech() {
         };
 
         recognitionRef.current = recognition;
-      } else {
-        setErrorMessage('உங்கள் உலாவியில் மைக்ரோஃபோன் வசதி இல்லை. கீழே தட்டச்சு செய்து பதிலளிக்கலாம்.');
       }
     }
 
@@ -122,158 +305,7 @@ export function useSpeech() {
         }
       }
     };
-  }, [stopAllAudio]);
-
-  /**
-   * Speak out loud using Google Neural Tamil Audio Stream.
-   * Falls back to browser SpeechSynthesis if offline.
-   */
-  const playTamilAudio = useCallback((textToSpeak, audioUrl, onFinished) => {
-    stopAllAudio();
-    setStatus('speaking');
-
-    // 1. Primary: Use streaming Google Tamil Audio
-    const streamUrl = audioUrl || `/api/tts?text=${encodeURIComponent(textToSpeak)}`;
-    const audio = new Audio(streamUrl);
-    activeAudioRef.current = audio;
-
-    audio.onplay = () => {
-      setStatus('speaking');
-      audioCue.playSuccess();
-    };
-
-    audio.onended = () => {
-      setStatus('idle');
-      activeAudioRef.current = null;
-      if (onFinished) onFinished();
-    };
-
-    audio.onerror = () => {
-      console.warn('Google TTS stream error, falling back to Web Speech API');
-      activeAudioRef.current = null;
-      // Fallback: Browser Web Speech API
-      if (synthRef.current) {
-        try {
-          synthRef.current.cancel();
-          const utterance = new SpeechSynthesisUtterance(textToSpeak);
-          utterance.lang = 'ta-IN';
-          utterance.rate = 0.95;
-          utterance.pitch = 1.0;
-
-          const voices = synthRef.current.getVoices();
-          const tamilVoice = voices.find(
-            (v) => v.lang.toLowerCase().includes('ta') || v.name.toLowerCase().includes('tamil')
-          );
-          if (tamilVoice) {
-            utterance.voice = tamilVoice;
-          }
-
-          utterance.onend = () => {
-            setStatus('idle');
-            if (onFinished) onFinished();
-          };
-          utterance.onerror = () => {
-            setStatus('idle');
-            if (onFinished) onFinished();
-          };
-
-          synthRef.current.speak(utterance);
-        } catch (e) {
-          setStatus('idle');
-          if (onFinished) onFinished();
-        }
-      } else {
-        setStatus('idle');
-        if (onFinished) onFinished();
-      }
-    };
-
-    audio.play().catch((err) => {
-      console.warn('Audio play autoplay restricted:', err);
-      // Fallback to Web Speech API on user gesture
-      if (synthRef.current) {
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.lang = 'ta-IN';
-        utterance.onend = () => {
-          setStatus('idle');
-          if (onFinished) onFinished();
-        };
-        synthRef.current.speak(utterance);
-      } else {
-        setStatus('idle');
-        if (onFinished) onFinished();
-      }
-    });
-  }, [stopAllAudio]);
-
-  /**
-   * Send speech transcript or typed message to backend government interviewer.
-   */
-  const sendTranscriptToSol = async (userText) => {
-    if (!userText || !userText.trim()) {
-      setStatus('idle');
-      return;
-    }
-
-    setStatus('processing');
-    setErrorMessage('');
-    setTranscript(userText);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userText,
-          history: history,
-          current_step: currentStep,
-          application_data: applicationData,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server returned HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      const reply = data.reply || 'சரிங்க அம்மா, அடுத்த விவரத்தை சொல்லுங்கள்.';
-
-      setLastSolResponse(reply);
-      setCurrentStep(data.current_step || 'age');
-      if (data.passed_criteria) {
-        setPassedCriteria(data.passed_criteria);
-      }
-      if (data.is_eligible !== undefined && data.is_eligible !== null) {
-        setIsEligible(data.is_eligible);
-      }
-      if (data.solution) {
-        setSolution(data.solution);
-      }
-      if (data.application) {
-        setApplicationData(data.application);
-      }
-
-      setHistory((prev) => [
-        ...prev,
-        { role: 'user', content: userText },
-        { role: 'model', content: reply },
-      ]);
-
-      // Play real Google Tamil speech audio and auto-listen for next answer!
-      playTamilAudio(reply, data.audio_url, () => {
-        if (data.current_step !== 'submitted') {
-          setTimeout(() => startListening(), 400);
-        }
-      });
-    } catch (err) {
-      console.error('Failed to communicate with Sol backend:', err);
-      const fallbackReply = 'இணைப்பில் தாமதம் ஏற்பட்டுள்ளது. மீண்டும் சொல்லுங்கள் அம்மா.';
-      setLastSolResponse(fallbackReply);
-      playTamilAudio(fallbackReply, null);
-    }
-  };
+  }, [stopAllAudio, sendTranscriptToSol]);
 
   /**
    * Main interaction trigger: starts interview or toggles listening.
@@ -358,9 +390,10 @@ export function useSpeech() {
     setIsEligible(null);
     setSolution(null);
     setCurrentStep('name');
+    currentStepRef.current = 'name';
     setHasStarted(false);
     setErrorMessage('');
-    setApplicationData({
+    const freshApp = {
       applicant_name: null,
       age: null,
       ration_card_type: 'PHH - வறுமைக் கோட்டிற்கு கீழ்',
@@ -374,7 +407,9 @@ export function useSpeech() {
       application_id: `KMUT-TN-2026-${Math.floor(10000 + Math.random() * 90000)}`,
       submission_status: 'gathering',
       applied_date: new Date().toLocaleDateString('en-GB'),
-    });
+    };
+    applicationDataRef.current = freshApp;
+    setApplicationData(freshApp);
   };
 
   return {

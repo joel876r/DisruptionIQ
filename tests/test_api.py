@@ -137,3 +137,40 @@ def test_empty_message_resilience() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["reply"] == WELCOME_MESSAGE
+
+
+def test_multi_entity_context_understanding() -> None:
+    """Test 9: Verify Sol extracts multiple details (name + age) from single context and advances to ration_card."""
+    payload = {
+        "message": "என் பெயர் செல்வி எனக்கு 35 வயது ஆகிறது",
+        "history": [],
+        "current_step": "name",
+    }
+    response = client.post("/api/chat", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["current_step"] == "ration_card"
+    assert "age" in data["passed_criteria"]
+    assert data["application"] is not None
+    assert "செல்வி" in (data["application"].get("applicant_name") or "")
+
+
+def test_ration_card_response_avoids_inquiry_trap() -> None:
+    """Test 10: Stating ration card number must record card and advance to income, not trigger document inquiry."""
+    payload = {
+        "message": "ரேஷன் கார்டு எண் 3324519 குடும்பத் தலைவி நான் தான்",
+        "history": [],
+        "current_step": "ration_card",
+        "application_data": {
+            "applicant_name": "செல்வி",
+            "age": 35,
+            "passed_criteria": ["age"],
+        },
+    }
+    response = client.post("/api/chat", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["current_step"] == "income"
+    assert "ration_card" in data["passed_criteria"]
+    assert data["application"] is not None
+    assert "3324519" in (data["application"].get("ration_card_number") or "")
