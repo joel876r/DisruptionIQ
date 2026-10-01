@@ -1,14 +1,17 @@
 """API routing endpoints for Sol / சொல் voice interaction.
 
 Defines RESTful endpoints for health verification, initial welcome greeting,
-and real government scheme application submissions for Kalaignar Magalir Urimai Thittam.
+Google Tamil text-to-speech streaming, and official government scheme
+application submissions for Kalaignar Magalir Urimai Thittam.
 """
 
 from __future__ import annotations
 
+import io
 import logging
+import urllib.parse
 from typing import Dict, List
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from api.schemas import ApplicationData, ChatRequest, ChatResponse, HealthResponse, SolutionDetails, WelcomeResponse
 from config import settings
@@ -43,7 +46,7 @@ async def health_check() -> HealthResponse:
     response_model=WelcomeResponse,
     status_code=status.HTTP_200_OK,
     summary="Initial voice greeting endpoint",
-    description="Provides the mandated Tamil greeting to trigger SpeechSynthesis on user arrival.",
+    description="Provides the mandated Tamil greeting to trigger speech synthesis on user arrival.",
 )
 async def get_welcome_message() -> WelcomeResponse:
     """Retrieve the official welcome greeting in Tamil.
@@ -53,11 +56,40 @@ async def get_welcome_message() -> WelcomeResponse:
         'வணக்கம், நான் சொல். நான் உங்களுக்கு எப்படி உதவ முடியும்?'
     """
     greeting = gemini_service.get_welcome_greeting()
+    encoded_audio_url = f"/api/tts?text={urllib.parse.quote(greeting)}"
     return WelcomeResponse(
         message=greeting,
         language="ta-IN",
         current_step="welcome",
+        audio_url=encoded_audio_url,
     )
+
+
+@router.get(
+    "/tts",
+    summary="Google Tamil Neural Text-to-Speech Streaming",
+    description="Generates authentic, fluent, human Tamil speech in memory using Google TTS.",
+)
+async def stream_tamil_speech(text: str = Query(..., description="Tamil text to speak")) -> Response:
+    """Generate and stream real Google Tamil speech audio directly in MP3 format.
+
+    Args:
+        text: Spoken Tamil message string.
+
+    Returns:
+        Audio/mpeg streaming response.
+    """
+    try:
+        from gtts import gTTS
+        fp = io.BytesIO()
+        tts = gTTS(text=text, lang="ta")
+        tts.write_to_fp(fp)
+        fp.seek(0)
+        return Response(content=fp.getvalue(), media_type="audio/mpeg")
+    except Exception as exc:
+        logger.warning("Google TTS generation exception: %s", exc)
+        # Return empty response if TTS unavailable so client falls back to Web Speech
+        return Response(content=b"", media_type="audio/mpeg")
 
 
 @router.post(
@@ -77,7 +109,7 @@ async def chat_interaction(payload: ChatRequest) -> ChatResponse:
         payload: ChatRequest containing user message, conversation history, current step, and application data.
 
     Returns:
-        ChatResponse with Tamil spoken answer, passed criteria, real application data, and solution.
+        ChatResponse with Tamil spoken answer, passed criteria, real application data, audio URL, and solution.
 
     Raises:
         HTTPException: If an unrecoverable processing error occurs.
@@ -105,8 +137,11 @@ async def chat_interaction(payload: ChatRequest) -> ChatResponse:
         if turn_result.get("application"):
             app_obj = ApplicationData(**turn_result["application"])
 
+        reply_text = turn_result["reply"]
+        audio_url = f"/api/tts?text={urllib.parse.quote(reply_text)}"
+
         return ChatResponse(
-            reply=turn_result["reply"],
+            reply=reply_text,
             language="ta-IN",
             session_id=payload.session_id,
             current_step=turn_result["current_step"],
@@ -114,6 +149,7 @@ async def chat_interaction(payload: ChatRequest) -> ChatResponse:
             is_eligible=turn_result["is_eligible"],
             solution=solution_obj,
             application=app_obj,
+            audio_url=audio_url,
         )
     except Exception as exc:
         logger.error("Unhandled error in /chat route: %s", exc, exc_info=True)

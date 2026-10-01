@@ -4,8 +4,9 @@ uvicorn[standard]>=0.28.0
 pydantic>=2.6.0
 python-dotenv>=1.0.1
 
-# Google GenAI Official SDK
+# Google GenAI Official SDK & Google Text-to-Speech (In-Memory Tamil Voice)
 google-genai>=0.1.1
+gTTS>=2.5.0
 
 # Testing & Client Utilities
 pytest>=8.0.0

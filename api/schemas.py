@@ -122,6 +122,10 @@ class ChatResponse(BaseModel):
         default=None,
         description="Updated real government scheme application form",
     )
+    audio_url: Optional[str] = Field(
+        default=None,
+        description="Streaming Google TTS Tamil audio URL",
+    )
 
 
 class WelcomeResponse(BaseModel):
@@ -138,6 +142,10 @@ class WelcomeResponse(BaseModel):
     current_step: str = Field(
         default="welcome",
         description="Initial dialogue step",
+    )
+    audio_url: Optional[str] = Field(
+        default=None,
+        description="Streaming Google TTS Tamil audio URL",
     )
 
 
