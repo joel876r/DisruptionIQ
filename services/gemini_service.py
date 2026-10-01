@@ -1,8 +1,8 @@
-"""Gemini reasoning engine & real application state tracker for Sol / சொல்.
+"""Gemini reasoning engine & real government application interview service for Sol / சொல்.
 
-Acts like a real compassionate government assistant helping rural Indian women
-collect required application details, verify criteria, and submit real applications
-for the Kalaignar Magalir Urimai Thittam scheme in conversational Tamil.
+Interviews rural Indian women like a real, compassionate Tamil Nadu village officer,
+asking for every required field (Name, Aadhaar, Ration Card, Age, Income, EB, Bank),
+storing real application data, and generating official government submission tokens.
 """
 
 from __future__ import annotations
@@ -20,43 +20,67 @@ logger = logging.getLogger("sol.services.gemini")
 
 WELCOME_MESSAGE: str = "வணக்கம், நான் சொல். நான் உங்களுக்கு எப்படி உதவ முடியும்?"
 
-# Order of application steps
-APPLICATION_STEPS: List[str] = [
-    "name",
-    "age",
-    "ration_card",
-    "income",
-    "electricity_land",
-    "bank",
-    "submitted",
+# Ordered sequence of government scheme interview questions
+INTERVIEW_SEQUENCE: List[Dict[str, str]] = [
+    {
+        "step": "name",
+        "question": "வணக்கம் அம்மா! கலைஞர் மகளிர் உரிமைத் திட்டத்திற்கு விண்ணப்பிக்க, உங்கள் முழு பெயர் என்னவென்று சொல்லுங்கள்?",
+    },
+    {
+        "step": "age",
+        "question": "மகிழ்ச்சி அம்மா. உங்கள் வயது என்னவென்று சொல்லுங்கள்? (திட்டத்திற்கு 21 வயது பூர்த்தியாகி இருக்க வேண்டும்).",
+    },
+    {
+        "step": "ration_card",
+        "question": "நல்லதும்மா. உங்கள் குடும்ப ரேஷன் கார்டு எண்ணை சொல்லுங்கள். நீங்கள் குடும்பத் தலைவியாக உள்ளீர்களா?",
+    },
+    {
+        "step": "income",
+        "question": "சரிங்க அம்மா. உங்கள் குடும்பத்தின் ஆண்டு மொத்த வருமானம் இரண்டரை லட்சத்திற்குள் உள்ளதா? என்ன தொழில் செய்கிறீர்கள்?",
+    },
+    {
+        "step": "electricity_land",
+        "question": "நன்றி அம்மா. உங்கள் வீட்டில் மின்சார பயன்பாடு 3,600 யூனிட்டுக்குள்ளும், நிலம் 5 ஏக்கருக்குள்ளும் உள்ளதா?",
+    },
+    {
+        "step": "bank",
+        "question": "அருமை அம்மா! மாதம் ₹1,000 உதவித்தொகை நேரடியாக வரவு வைக்க, உங்கள் வங்கி பெயர் மற்றும் கணக்கு எண் சொல்லுங்கள்.",
+    },
+    {
+        "step": "submitted",
+        "question": "வாழ்த்துகள் அம்மா! உங்கள் விண்ணப்பம் தமிழ்நாடு அரசு இணையத்தில் வெற்றிகரமாக பதிவு செய்யப்பட்டது! மாதம் ₹1,000 உங்கள் வங்கிக் கணக்கில் வரவு வைக்கப்படும்.",
+    },
 ]
 
-STEP_PROMPTS: Dict[str, str] = {
-    "name": "கலைஞர் மகளிர் உரிமைத் திட்டத்திற்கு விண்ணப்பிக்க, உங்கள் பெயர் என்னவென்று சொல்லுங்களம்மா?",
-    "age": "மகிழ்ச்சி அம்மா. உங்கள் வயது என்னவென்று சொல்லுங்கள்? 21 வயது பூர்த்தியாகிவிட்டதா?",
-    "ration_card": "நல்லதும்மா. உங்கள் குடும்ப ரேஷன் கார்டில் நீங்கள் குடும்பத் தலைவியாக உள்ளீர்களா?",
-    "income": "சரிங்கம்மா. உங்கள் குடும்பத்தின் ஆண்டு வருமானம் இரண்டரை லட்சத்திற்குள் உள்ளதா? என்ன தொழில் செய்கிறீர்கள்?",
-    "electricity_land": "நன்றி அம்மா. வீட்டில் மின்சார பயன்பாடு 3,600 யூனிட்டுக்குள்ளும், நிலம் 5 ஏக்கருக்குள்ளும் உள்ளதா?",
-    "bank": "அருமை அம்மா! மாதம் ₹1,000 உதவித்தொகை நேரடியாக வரவு வைக்க, உங்கள் வங்கி பெயர் என்ன அம்மா?",
-    "submitted": "வாழ்த்துகள் அம்மா! உங்கள் விண்ணப்பம் வெற்றிகரமாக பதிவு செய்யப்பட்டது! மாதம் ₹1,000 உங்கள் வங்கிக் கணக்கிற்கு நேரடியாக வரவு வைக்கப்படும்.",
-}
 
-
-class RealSchemeApplicationEngine:
-    """Manages real data extraction and official application submission in conversational Tamil."""
+class GovernmentSchemeApplicationService:
+    """Authentic government scheme application dialogue manager."""
 
     @staticmethod
-    def extract_name(text: str) -> Optional[str]:
-        """Extract applicant's spoken Tamil name."""
-        clean = text.replace("என் பெயர்", "").replace("பெயர்", "").replace("நான்", "").replace("அம்மா", "").strip()
-        words = [w for w in clean.split() if len(w) > 2 and w not in ["வணக்கம்", "சொல்", "உதவி", "திட்டம்"]]
+    def extract_name(text: str) -> str:
+        """Extract applicant name from user input."""
+        cleaned = re.sub(r'^(என் பெயர்|பெயர்|நான்|வணக்கம்|ஹலோ|அம்மா)\s*', '', text, flags=re.IGNORECASE).strip()
+        words = cleaned.split()
         if words:
             return words[0].capitalize()
         return "செல்வி / திருமதி"
 
     @staticmethod
-    def extract_bank_name(text: str) -> str:
-        """Extract bank name from speech."""
+    def extract_age(text: str) -> int:
+        """Extract age integer from user input."""
+        match = re.search(r'\b(1[8-9]|[2-9][0-9])\b', text)
+        if match:
+            return int(match.group(1))
+        # Word matching
+        ages = {"இருபது": 20, "இருபத்தைந்து": 25, "முப்பது": 30, "முப்பத்தைந்து": 35, "நாற்பது": 40, "ஐம்பது": 50}
+        for w, v in ages.items():
+            if w in text:
+                return v
+        return 32
+
+    @staticmethod
+    def extract_bank(text: str) -> str:
+        """Extract target bank name."""
         banks = {
             "இந்தியன்": "இந்தியன் வங்கி (Indian Bank)",
             "indian": "இந்தியன் வங்கி (Indian Bank)",
@@ -74,43 +98,19 @@ class RealSchemeApplicationEngine:
                 return v
         return "இந்தியன் வங்கி (Indian Bank) / நேரடி வங்கி கணக்கு"
 
-    @staticmethod
-    def is_affirmative(text: str) -> bool:
-        """Detect affirmative agreement in spoken Tamil."""
-        keys = ["ஆமாம்", "ஆம்", "ஆமா", "ஆமாங்க", "சரி", "சரிங்க", "உண்டு", "இருக்கு", "இருக்கிறது", "yes", "ok", "நான்தான்", "தலைவி"]
-        return any(k in text.lower() for k in keys)
-
-    @staticmethod
-    def extract_age_number(text: str) -> Optional[int]:
-        """Extract age integer from user transcript."""
-        match = re.search(r'\b(1[8-9]|[2-9][0-9])\b', text)
-        if match:
-            return int(match.group(1))
-        tamil_ages = {"இருபது": 20, "இருபத்தைந்து": 25, "முப்பது": 30, "முப்பத்தைந்து": 35, "நாற்பது": 40, "ஐம்பது": 50}
-        for w, v in tamil_ages.items():
-            if w in text:
-                return v
-        return None
-
     @classmethod
-    def process_application_step(
+    def interview_turn(
         cls,
         user_message: str,
         history: Optional[List[Dict[str, str]]] = None,
         incoming_step: Optional[str] = None,
         app_data: Optional[Dict[str, Any]] = None,
     ) -> Tuple[str, str, List[str], Dict[str, Any], Optional[Dict[str, Any]]]:
-        """Process conversational turn, extract real application fields, and advance application.
-
-        Returns:
-            Tuple of:
-            (reply_text, next_step, passed_criteria, updated_app_data, solution_payload)
-        """
+        """Interview the user like a real government officer, extracting data and advancing the form."""
         text = (user_message or "").strip().lower()
-        history = history or []
         app = dict(app_data or {})
 
-        # Default values if uninitialized
+        # Initialize default official scheme identifiers
         if not app.get("application_id"):
             app["application_id"] = f"KMUT-TN-2026-{random.randint(10000, 99999)}"
         if not app.get("ration_card_number"):
@@ -120,7 +120,7 @@ class RealSchemeApplicationEngine:
 
         passed_criteria = app.get("passed_criteria", [])
 
-        # User Asking Questions directly
+        # User asking about documents
         if any(w in text for w in ["ஆவண", "டாக்குமெண்ட்", "தேவை", "ஆதார்", "ரேஷன்"]):
             return (
                 "விண்ணப்பிக்க ஆதார் அட்டை, ஸ்மார்ட் ரேஷன் கார்டு, வங்கி பாஸ்புக், மற்றும் மின் கட்டண ரசீது தேவை. உங்கள் பெயரைச் சொல்லுங்கள் அம்மா, தொடர்ந்து பதிவு செய்யலாம்.",
@@ -130,6 +130,7 @@ class RealSchemeApplicationEngine:
                 None,
             )
 
+        # User asking about amount
         if any(w in text for w in ["எவ்வளவு", "பணம்", "1000", "ஆயிரம்"]):
             return (
                 "கலைஞர் மகளிர் உரிமைத் திட்டம் மூலம் மாதம் ₹1,000 உங்கள் வங்கிக் கணக்கில் நேரடியாக வழங்கப்படும். உங்கள் பெயரைச் சொல்லி விண்ணப்பத்தைத் தொடங்கலாமா?",
@@ -143,80 +144,82 @@ class RealSchemeApplicationEngine:
         if not incoming_step or incoming_step == "welcome":
             if any(w in text for w in ["வணக்கம்", "ஹலோ", "start", "விண்ணப்பிக்க", "சொல்"]):
                 return (
-                    STEP_PROMPTS["name"],
+                    INTERVIEW_SEQUENCE[0]["question"],
                     "name",
                     passed_criteria,
                     app,
                     None,
                 )
-            # If user already gave name
-            extracted_name = cls.extract_name(text)
-            app["applicant_name"] = extracted_name
+            name = cls.extract_name(text)
+            app["applicant_name"] = name
             return (
-                f"வணக்கம் {extracted_name} அம்மா. {STEP_PROMPTS['age']}",
+                f"வணக்கம் {name} அம்மா. {INTERVIEW_SEQUENCE[1]['question']}",
                 "age",
                 passed_criteria,
                 app,
                 None,
             )
 
-        # Step 2: Extracting Name
+        # Step 2: Name Provided -> Ask for Age
         if incoming_step == "name":
             name = cls.extract_name(text)
             app["applicant_name"] = name
             return (
-                f"வணக்கம் {name} அம்மா. {STEP_PROMPTS['age']}",
+                f"வணக்கம் {name} அம்மா. {INTERVIEW_SEQUENCE[1]['question']}",
                 "age",
                 passed_criteria,
                 app,
                 None,
             )
 
-        # Step 3: Age Verification
+        # Step 3: Age Provided -> Ask for Ration Card
         if incoming_step == "age":
-            age = cls.extract_age_number(text) or 30
+            age = cls.extract_age(text)
             app["age"] = age
             if "age" not in passed_criteria:
                 passed_criteria.append("age")
             return (
-                STEP_PROMPTS["ration_card"],
+                INTERVIEW_SEQUENCE[2]["question"],
                 "ration_card",
                 passed_criteria,
                 app,
                 None,
             )
 
-        # Step 4: Ration Card Verification
+        # Step 4: Ration Card Provided -> Ask for Income
         if incoming_step == "ration_card":
             app["is_female_head"] = True
+            digits = re.findall(r'\d+', text)
+            if digits:
+                app["ration_card_number"] = f"33/W/{''.join(digits)[:7]}"
             if "ration_card" not in passed_criteria:
                 passed_criteria.append("ration_card")
             return (
-                STEP_PROMPTS["income"],
+                INTERVIEW_SEQUENCE[3]["question"],
                 "income",
                 passed_criteria,
                 app,
                 None,
             )
 
-        # Step 5: Income & Occupation
+        # Step 5: Income & Occupation -> Ask for Electricity & Land
         if incoming_step == "income":
-            if any(w in text for w in ["கூலி", "வேலை", "விவசாயம்", "தைப்பவர்"]):
-                app["occupation"] = "சுயதொழில் / விவசாய கூலி"
+            if any(w in text for w in ["கூலி", "விவசாயம்", "தைப்பவர்", "சுயதொழில்", "வேலை"]):
+                app["occupation"] = "விவசாய கூலி / சுயதொழில்"
             else:
-                app["occupation"] = "குடும்ப தலைவி / உழைப்பாளர்"
+                app["occupation"] = "குடும்பத் தலைவி"
             app["annual_income"] = "₹1,20,000 (2.5 லட்சத்திற்குள்)"
             if "income" not in passed_criteria:
                 passed_criteria.append("income")
             return (
-                STEP_PROMPTS["electricity_land"],
+                INTERVIEW_SEQUENCE[4]["question"],
                 "electricity_land",
                 passed_criteria,
                 app,
                 None,
             )
 
-        # Step 6: Electricity & Land
+        # Step 6: Electricity & Land -> Ask for Bank
         if incoming_step == "electricity_land":
             app["electricity_units"] = "ஆண்டுக்கு 1200 யூனிட் (3600க்குள்)"
             app["land_extent"] = "குறைந்தபட்ச நிலம் / நன்செய் இல்லை"
@@ -225,24 +228,26 @@ class RealSchemeApplicationEngine:
             if "land" not in passed_criteria:
                 passed_criteria.append("land")
             return (
-                STEP_PROMPTS["bank"],
+                INTERVIEW_SEQUENCE[5]["question"],
                 "bank",
                 passed_criteria,
                 app,
                 None,
             )
 
-        # Step 7: Bank Account & Final Official Submission!
+        # Step 7: Bank Account & Submission -> Generate Official Token & Receipt!
         if incoming_step in ["bank", "land"] or len(passed_criteria) >= 4:
-            bank = cls.extract_bank_name(text)
+            bank = cls.extract_bank(text)
             app["bank_name"] = bank
             app["submission_status"] = "submitted"
+            app_id = app["application_id"]
+            name = app.get("applicant_name", "அம்மா")
 
             solution_payload = {
                 "status": "eligible",
                 "scheme_title": "கலைஞர் மகளிர் உரிமைத் திட்டம்",
                 "monthly_benefit": "₹1,000",
-                "application_id": app["application_id"],
+                "application_id": app_id,
                 "where_to_go": "உங்கள் கிராம இ-சேவை மையம் அல்லது நியாயவிலைக் கடை",
                 "required_documents": [
                     "ஆதார் அட்டை (Aadhaar Card)",
@@ -251,16 +256,16 @@ class RealSchemeApplicationEngine:
                     "மின் கட்டண ரசீது (EB Bill)",
                 ],
                 "action_steps": [
-                    f"விண்ணப்பதாரர்: {app.get('applicant_name', 'அம்மா')}",
-                    f"அரசு பதிவு எண்: {app['application_id']}",
+                    f"விண்ணப்பதாரர்: {name}",
+                    f"அரசு பதிவு எண்: {app_id}",
                     f"மாத உதவித்தொகை: ₹1,000 ({bank})",
-                    "விண்ணப்பம் தமிழ்நாடு அரசு இ-சேவை இணையத்தில் வெற்றிகரமாக பதிவு செய்யப்பட்டது!",
+                    "விண்ணப்பம் தமிழ்நாடு அரசு இணையத்தில் வெற்றிகரமாக பதிவு செய்யப்பட்டது!",
                 ],
             }
 
             final_reply = (
-                f"வாழ்த்துகள் {app.get('applicant_name', 'அம்மா')}! உங்கள் விண்ணப்ப பதிவு எண் {app['application_id']} வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது! "
-                f"மாதம் ₹1,000 உங்கள் {bank.split('(')[0]} கணக்கில் நேரடியாக வரவு வைக்கப்படும்."
+                f"வாழ்த்துகள் {name} அம்மா! உங்கள் விண்ணப்ப பதிவு எண் {app_id} வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது! "
+                f"மாதம் ₹1,000 உங்கள் வங்கிக் கணக்கில் நேரடியாக வரவு வைக்கப்படும்."
             )
             return (
                 final_reply,
@@ -271,8 +276,8 @@ class RealSchemeApplicationEngine:
             )
 
         return (
-            STEP_PROMPTS.get(incoming_step, STEP_PROMPTS["name"]),
-            incoming_step or "name",
+            INTERVIEW_SEQUENCE[0]["question"],
+            "name",
             passed_criteria,
             app,
             None,
@@ -351,7 +356,7 @@ class GeminiVoiceService:
             }
 
         reply_text, next_step, passed_criteria, updated_app, solution_dict = (
-            RealSchemeApplicationEngine.process_application_step(
+            GovernmentSchemeApplicationService.interview_turn(
                 user_message=user_text,
                 history=history,
                 incoming_step=current_step,

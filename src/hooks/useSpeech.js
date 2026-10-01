@@ -1,23 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { audioCue } from '../utils/audioCue';
 
-const INITIAL_TAMIL_GREETING = 'வணக்கம், நான் சொல். நான் உங்களுக்கு எப்படி உதவ முடியும்?';
+const FIRST_INTERVIEW_PROMPT = 'வணக்கம் அம்மா! நான் சொல். கலைஞர் மகளிர் உரிமைத் திட்டத்திற்கு விண்ணப்பிக்க, உங்கள் முழு பெயர் என்னவென்று சொல்லுங்கள் அம்மா?';
 
 /**
- * Enhanced React Hook for Sol Voice Interaction
- * Integrates Web Speech API with real government scheme application state tracking,
- * data persistence, and receipt generation for Kalaignar Magalir Urimai Thittam.
+ * Enhanced Web Speech API coordinator for real government scheme application interview.
+ * Supports dual input: voice speech recognition AND text messaging input.
  */
 export function useSpeech() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking' | 'error'
   const [transcript, setTranscript] = useState('');
-  const [lastSolResponse, setLastSolResponse] = useState('');
+  const [lastSolResponse, setLastSolResponse] = useState(FIRST_INTERVIEW_PROMPT);
   const [history, setHistory] = useState([]);
   const [hasStarted, setHasStarted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Scheme Application State
-  const [currentStep, setCurrentStep] = useState('welcome');
+  // Scheme Application Data
+  const [currentStep, setCurrentStep] = useState('name');
   const [passedCriteria, setPassedCriteria] = useState([]);
   const [isEligible, setIsEligible] = useState(null);
   const [solution, setSolution] = useState(null);
@@ -39,7 +38,6 @@ export function useSpeech() {
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
-  const currentUtteranceRef = useRef(null);
   const isComponentMounted = useRef(true);
 
   // Initialize SpeechSynthesis and SpeechRecognition
@@ -73,11 +71,11 @@ export function useSpeech() {
           console.warn('SpeechRecognition error:', event.error);
           audioCue.playError();
           if (event.error === 'no-speech') {
-            setErrorMessage('குரல் கேட்கவில்லை. மீண்டும் பொத்தானை அழுத்தி பேசவும்.');
+            setErrorMessage('குரல் கேட்கவில்லை. மீண்டும் பொத்தானை அழுத்தி பேசவும் அல்லது கீழே தட்டச்சு செய்யவும்.');
           } else if (event.error === 'not-allowed') {
             setErrorMessage('மைக்ரோஃபோன் அனுமதியை இயக்கவும் (Allow Microphone).');
           } else {
-            setErrorMessage('மன்னிக்கவும், மீண்டும் முயற்சிக்கவும்.');
+            setErrorMessage('மன்னிக்கவும், உங்கள் பதிலை மீண்டும் சொல்லுங்கள்.');
           }
           setStatus('idle');
         };
@@ -88,7 +86,7 @@ export function useSpeech() {
 
         recognitionRef.current = recognition;
       } else {
-        setErrorMessage('உங்கள் உலாவியில் குரல் வசதி (Speech Recognition) ஆதரிக்கப்படவில்லை.');
+        setErrorMessage('உங்கள் உலாவியில் குரல் வசதி இல்லை. கீழே உள்ள தட்டச்சு பெட்டியைப் பயன்படுத்தலாம்.');
       }
     }
 
@@ -112,51 +110,56 @@ export function useSpeech() {
   }, []);
 
   /**
-   * Speak text in Tamil using native browser SpeechSynthesis.
+   * Speak out loud in Tamil using browser SpeechSynthesis.
    */
   const speakTamil = useCallback((textToSpeak, onFinished) => {
-    if (!synthRef.current) {
+    if (!synthRef.current || typeof window === 'undefined') {
       if (onFinished) onFinished();
       return;
     }
 
-    synthRef.current.cancel();
+    try {
+      synthRef.current.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'ta-IN';
-    utterance.rate = 0.94;
-    utterance.pitch = 1.0;
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = 'ta-IN';
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
 
-    const voices = synthRef.current.getVoices();
-    const tamilVoice = voices.find(
-      (v) => v.lang.toLowerCase().includes('ta-in') || v.lang.toLowerCase().includes('ta')
-    );
-    if (tamilVoice) {
-      utterance.voice = tamilVoice;
+      const voices = synthRef.current.getVoices();
+      const tamilVoice = voices.find(
+        (v) => v.lang.toLowerCase().includes('ta-in') || v.lang.toLowerCase().includes('ta')
+      );
+      if (tamilVoice) {
+        utterance.voice = tamilVoice;
+      }
+
+      utterance.onstart = () => {
+        setStatus('speaking');
+        audioCue.playSuccess();
+      };
+
+      utterance.onend = () => {
+        setStatus('idle');
+        if (onFinished) onFinished();
+      };
+
+      utterance.onerror = (event) => {
+        console.warn('SpeechSynthesis error:', event);
+        setStatus('idle');
+        if (onFinished) onFinished();
+      };
+
+      synthRef.current.speak(utterance);
+    } catch (err) {
+      console.warn('speakTamil error:', err);
+      setStatus('idle');
+      if (onFinished) onFinished();
     }
-
-    utterance.onstart = () => {
-      setStatus('speaking');
-      audioCue.playSuccess();
-    };
-
-    utterance.onend = () => {
-      setStatus('idle');
-      if (onFinished) onFinished();
-    };
-
-    utterance.onerror = (event) => {
-      console.warn('SpeechSynthesis error:', event);
-      setStatus('idle');
-      if (onFinished) onFinished();
-    };
-
-    currentUtteranceRef.current = utterance;
-    synthRef.current.speak(utterance);
   }, []);
 
   /**
-   * Send recognized or selected text to the backend reasoning engine.
+   * Send speech transcript or typed message to backend government interviewer.
    */
   const sendTranscriptToSol = async (userText) => {
     if (!userText || !userText.trim()) {
@@ -187,10 +190,10 @@ export function useSpeech() {
       }
 
       const data = await response.json();
-      const reply = data.reply || 'சரிங்கம்மா, அடுத்த விவரத்தை சொல்லுங்கள்.';
+      const reply = data.reply || 'சரிங்க அம்மா, அடுத்த விவரத்தை சொல்லுங்கள்.';
 
       setLastSolResponse(reply);
-      setCurrentStep(data.current_step || 'name');
+      setCurrentStep(data.current_step || 'age');
       if (data.passed_criteria) {
         setPassedCriteria(data.passed_criteria);
       }
@@ -210,7 +213,13 @@ export function useSpeech() {
         { role: 'model', content: reply },
       ]);
 
-      speakTamil(reply);
+      // Speak response out loud and then listen for next answer
+      speakTamil(reply, () => {
+        if (data.current_step !== 'submitted') {
+          // Automatically start listening for the next field
+          setTimeout(() => startListening(), 300);
+        }
+      });
     } catch (err) {
       console.error('Failed to communicate with Sol backend:', err);
       const fallbackReply = 'இணைப்பில் தாமதம் ஏற்பட்டுள்ளது. மீண்டும் சொல்லுங்கள் அம்மா.';
@@ -220,7 +229,7 @@ export function useSpeech() {
   };
 
   /**
-   * Main interaction trigger: toggles listening or starts welcome flow.
+   * Main interaction trigger: starts interview or toggles listening.
    */
   const toggleListening = () => {
     setErrorMessage('');
@@ -233,9 +242,7 @@ export function useSpeech() {
 
     if (!hasStarted) {
       setHasStarted(true);
-      setLastSolResponse(INITIAL_TAMIL_GREETING);
-      setCurrentStep('name');
-      speakTamil(INITIAL_TAMIL_GREETING, () => {
+      speakTamil(FIRST_INTERVIEW_PROMPT, () => {
         startListening();
       });
       return;
@@ -258,7 +265,7 @@ export function useSpeech() {
 
   const startListening = () => {
     if (!recognitionRef.current) {
-      setErrorMessage('குரல் ஏற்பி (Microphone) உங்கள் உலாவியில் கிடைக்கவில்லை.');
+      setErrorMessage('குரல் ஏற்பி (Microphone) உங்கள் உலாவியில் கிடைக்கவில்லை. கீழே தட்டச்சு செய்யவும்.');
       return;
     }
     try {
@@ -279,6 +286,7 @@ export function useSpeech() {
     if (status === 'speaking' && synthRef.current) {
       synthRef.current.cancel();
     }
+    setHasStarted(true);
     sendTranscriptToSol(answerText);
   };
 
@@ -299,12 +307,12 @@ export function useSpeech() {
     }
     setStatus('idle');
     setTranscript('');
-    setLastSolResponse('');
+    setLastSolResponse(FIRST_INTERVIEW_PROMPT);
     setHistory([]);
     setPassedCriteria([]);
     setIsEligible(null);
     setSolution(null);
-    setCurrentStep('welcome');
+    setCurrentStep('name');
     setHasStarted(false);
     setErrorMessage('');
     setApplicationData({
