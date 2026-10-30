@@ -4,110 +4,82 @@
 
 @layer base {
   html, body {
-    height: 100%;
     margin: 0;
     padding: 0;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    background: radial-gradient(circle at 50% 10%, #061e1b 0%, #040e1b 45%, #02060f 100%);
-    color: #f8fafc;
-    font-family: 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+    min-height: 100%;
+    background-color: #0b0c10;
+    color: #f3f4f6;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+    letter-spacing: -0.01em;
   }
 }
 
-/* Glassmorphism Panels */
-.glass-panel {
-  background: rgba(10, 24, 40, 0.78);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(52, 211, 153, 0.22);
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0e13;
+}
+::-webkit-scrollbar-thumb {
+  background: #232530;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #363847;
 }
 
-.glass-gold {
-  background: rgba(35, 25, 8, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(245, 158, 11, 0.4);
+/* Card surfaces directly matching Image 2 & Image 3 */
+.card-dark {
+  background-color: #14151b;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
 }
 
-.glass-card {
-  background: rgba(9, 17, 34, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1.5px solid rgba(56, 189, 248, 0.25);
+.card-dark-hover {
+  background-color: #14151b;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-dark-hover:hover {
+  border-color: rgba(220, 248, 54, 0.3);
+  transform: translateY(-1px);
 }
 
-/* Soft breathing pulse for resting state */
-@keyframes softBreathe {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.25), 0 0 60px rgba(6, 182, 212, 0.15);
-  }
-  50% {
-    transform: scale(1.03);
-    box-shadow: 0 0 45px rgba(16, 185, 129, 0.45), 0 0 90px rgba(6, 182, 212, 0.3);
-  }
+.card-inner {
+  background-color: #191a22;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
 }
 
-.animate-breathe {
-  animation: softBreathe 3.2s ease-in-out infinite;
+/* Electric Lime Highlights */
+.badge-lime {
+  background-color: #dcf836;
+  color: #0c0d11;
+  font-weight: 700;
 }
 
-/* Massive Microphone Active Ripple */
-@keyframes micActiveWave {
-  0% {
-    transform: scale(0.94);
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8), 0 0 0 0 rgba(245, 158, 11, 0.6);
-  }
-  65% {
-    transform: scale(1.06);
-    box-shadow: 0 0 0 40px rgba(239, 68, 68, 0), 0 0 0 70px rgba(245, 158, 11, 0);
-  }
-  100% {
-    transform: scale(0.94);
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 0 0 0 rgba(245, 158, 11, 0);
-  }
+.badge-dark-pill {
+  background-color: #1c1d25;
+  color: #d1d5db;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.animate-mic-wave {
-  animation: micActiveWave 1.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+.glow-lime {
+  box-shadow: 0 0 25px rgba(220, 248, 54, 0.22);
 }
 
-/* Speaking Waveform Bars */
-@keyframes waveBar {
-  0%, 100% {
-    height: 10px;
-  }
-  50% {
-    height: 48px;
-  }
+.glow-orange {
+  box-shadow: 0 0 25px rgba(249, 115, 22, 0.2);
 }
 
-.bar-1 { animation: waveBar 0.9s ease-in-out infinite 0.1s; }
-.bar-2 { animation: waveBar 1.2s ease-in-out infinite 0.3s; }
-.bar-3 { animation: waveBar 0.8s ease-in-out infinite 0.0s; }
-.bar-4 { animation: waveBar 1.1s ease-in-out infinite 0.25s; }
-.bar-5 { animation: waveBar 1.3s ease-in-out infinite 0.4s; }
-
-/* Subtle finger tap guide animation */
-@keyframes fingerTap {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
+/* Leaflet High-Contrast Dark Mode Cartography (Free Public OpenStreetMap, No API Key Required) */
+.leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(82%) contrast(95%);
 }
-
-.animate-finger-tap {
-  animation: fingerTap 1.6s ease-in-out infinite;
-}
-
-/* Accessible high-contrast focus rings */
-button:focus-visible, a:focus-visible, input:focus-visible {
-  outline: 3px solid #facc15 !important;
-  outline-offset: 3px;
+.leaflet-container {
+  background-color: #0b0f17 !important;
 }

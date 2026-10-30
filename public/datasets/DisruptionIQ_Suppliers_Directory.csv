@@ -1,0 +1,7 @@
+code,name,location,contact_email,reliability_score,lead_time_days,is_alternative_backup
+SUP-NOV-01,Novo Nordisk A/S,Kalundborg Denmark,logistics@novonordisk.example.com,0.98,3,false
+SUP-SANO-02,Sanofi Pasteur S.A.,Lyon France,supply@sanofi.example.com,0.95,4,false
+SUP-GEN-03,Geneva BioLogics AG (Backup),Geneva Switzerland,express@genevabio.example.com,0.92,1,true
+SUP-INF-04,Infineon Technologies AG,Munich Germany,auto-semis@infineon.example.com,0.97,5,false
+SUP-STM-05,STMicroelectronics N.V. (Backup),Agrate Brianza Italy,backup@stmicro.example.com,0.91,2,true
+SUP-SAFRAN-06,Safran Electronics & Defense,Paris France,avionics@safran.example.com,0.99,7,false

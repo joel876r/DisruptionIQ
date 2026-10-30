@@ -1,13 +1,12 @@
-# Core API Framework
+# DisruptionIQ - Supply Chain Disruption Recovery Platform Backend
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 pydantic>=2.6.0
+sqlalchemy>=2.0.0
 python-dotenv>=1.0.1
-
-# Google GenAI Official SDK & Google Text-to-Speech (In-Memory Tamil Voice)
-google-genai>=0.1.1
-gTTS>=2.5.0
-
-# Testing & Client Utilities
-pytest>=8.0.0
+bcrypt>=4.0.0
+pyjwt>=2.8.0
+python-multipart>=0.0.9
 httpx>=0.27.0
+pytest>=8.0.0
+google-genai>=0.1.1

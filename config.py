@@ -1,6 +1,6 @@
-"""Configuration module for Sol / சொல் backend.
+"""Configuration module for DisruptionIQ backend.
 
-Handles environment variable loading, default values, and CORS policy configuration.
+Loads environment variables, CORS policies, JWT signing keys, and Gemini AI configuration.
 """
 
 from __future__ import annotations
@@ -9,19 +9,24 @@ import os
 from typing import List
 from dotenv import load_dotenv
 
-# Load environment variables from .env file if present
 load_dotenv()
 
 
 class Settings:
     """Application configuration settings loaded from environment variables."""
 
-    PROJECT_NAME: str = "Sol / சொல்"
-    VERSION: str = "1.0.0"
+    PROJECT_NAME: str = os.getenv("PROJECT_NAME", "DisruptionIQ")
+    VERSION: str = os.getenv("VERSION", "1.0.0")
     DESCRIPTION: str = (
-        "Zero-UI Voice Assistant helping rural Indian women access "
-        "the Kalaignar Magalir Urimai Thittam scheme via conversational Tamil."
+        "From Delivery Delays to Recovery Plans — Multi-Company Supply Chain Resilience Platform"
     )
+
+    # Database
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./disruption_iq.db")
+
+    # Security & Auth
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "disruption-iq-super-secure-production-ready-secret-key-2026")
+    CARRIER_WEBHOOK_SECRET: str = os.getenv("CARRIER_WEBHOOK_SECRET", "carrier-secure-demo-secret-2026")
 
     # Gemini API Configuration
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
@@ -32,7 +37,7 @@ class Settings:
     PORT: int = int(os.getenv("PORT", "8000"))
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
-    # CORS Settings: explicitly allowed frontend origins
+    # CORS Settings
     ALLOWED_ORIGINS: List[str] = [
         origin.strip()
         for origin in os.getenv(
@@ -41,29 +46,6 @@ class Settings:
         ).split(",")
         if origin.strip()
     ]
-
-    # Required System Prompt for Sol Voice Reasoning Engine
-    SOL_SYSTEM_INSTRUCTION: str = (
-        "You are 'Sol' (சொல்), a simple voice assistant. "
-        "Speak exclusively in simple, conversational Tamil. "
-        "Start the first interaction with 'வணக்கம், நான் சொல். நான் உங்களுக்கு எப்படி உதவ முடியும்?'. "
-        "Responses must be a maximum of 2 sentences, asking only one eligibility question at a time "
-        "for the 'Kalaignar Magalir Urimai Thittam' scheme."
-    )
-
-    # Official Scheme Knowledge base for Kalaignar Magalir Urimai Thittam (KMUT)
-    KMUT_SCHEME_CRITERIA: str = (
-        "Scheme Details (கலைஞர் மகளிர் உரிமைத் திட்டம்):\n"
-        "- Monthly assistance of ₹1,000 for eligible women heads of families in Tamil Nadu.\n"
-        "- Criteria to evaluate sequentially (ask only one question per turn in simple Tamil):\n"
-        "  1. Is the applicant a woman aged 21 or older?\n"
-        "  2. Is the family's annual income less than ₹2.5 Lakhs (ஆண்டு வருமானம் ₹2.5 லட்சத்திற்குள்)?\n"
-        "  3. Is family electricity consumption under 3,600 units/year (மின் பயன்பாடு 3600 யூனிட்)?\n"
-        "  4. Does the family own less than 5 acres wetland or 10 acres dryland?\n"
-        "  5. Is she the designated female head on the family ration card (குடும்ப அட்டை)?\n"
-        "- Once all criteria are met, warmly confirm eligibility and advise visiting the nearest e-Sevai / ration center.\n"
-        "- If ineligible, explain kindly and gently in simple spoken Tamil."
-    )
 
 
 settings = Settings()

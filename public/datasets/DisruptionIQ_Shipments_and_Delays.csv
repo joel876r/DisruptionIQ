@@ -1,0 +1,7 @@
+tracking_number,carrier,destination_warehouse_code,origin_location,scheduled_eta,delay_hours,status,product_sku,quantity
+TRK-APX-8801,Kuehne+Nagel Cold-Chain,WH-FRA-01,Antwerp Port Terminal,2026-11-01T08:00:00,48.0,DELAYED,MED-INSULIN-100,500
+TRK-APX-8802,DHL Global Forwarding,WH-ROT-03,Rotterdam Europort,2026-11-01T14:00:00,36.0,DELAYED,SEMI-CHIP-A9,400
+TRK-APX-8803,Panalpina Swiss Express,WH-ZUR-04,Basel EuroAirport,2026-11-02T10:00:00,0.0,IN_TRANSIT,AERO-SENSOR-X1,150
+TRK-APX-8804,DB Schenker Air Cargo,WH-FRA-01,Frankfurt CargoCity,2026-11-02T16:00:00,0.0,IN_TRANSIT,PHARMA-VACCINE-B,300
+TRK-APX-8805,Maersk Inland Intermodal,WH-MIL-02,Genoa Port,2026-11-03T18:00:00,12.0,DELAYED,ROBOT-SERVO-500,200
+TRK-APX-8806,Hapag-Lloyd Express,WH-ANT-05,Antwerp Gateway,2026-11-04T09:00:00,0.0,IN_TRANSIT,BATT-CELL-4680,600

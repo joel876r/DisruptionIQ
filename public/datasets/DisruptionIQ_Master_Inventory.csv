@@ -1,0 +1,16 @@
+sku,product_name,warehouse_code,batch_number,physical_units,reserved_units,damaged_units,expired_units,safety_stock,unit_price_inr,category
+MED-INSULIN-100,Insulin Glargine 100U Cold-Chain,WH-FRA-01,LOT-2026-X88,250,150,0,0,40,4250.00,Cold Chain Biopharma
+MED-INSULIN-100,Insulin Glargine 100U Cold-Chain,WH-MIL-02,LOT-2026-M12,320,100,0,0,50,4250.00,Cold Chain Biopharma
+MED-INSULIN-100,Insulin Glargine 100U Cold-Chain,WH-ROT-03,LOT-2026-R04,180,60,10,0,30,4250.00,Cold Chain Biopharma
+MED-STENT-02,Drug-Eluting Cardiac Stent Cobalt,WH-FRA-01,LOT-2026-S01,150,80,0,0,25,38000.00,Surgical Implant
+MED-STENT-02,Drug-Eluting Cardiac Stent Cobalt,WH-ZUR-04,LOT-2026-Z99,90,30,0,0,20,38000.00,Surgical Implant
+SEMI-CHIP-A9,Automotive MCU Quad-Core QFN-64,WH-ROT-03,LOT-2026-C09,450,300,20,0,80,12800.00,Critical Semiconductor
+SEMI-CHIP-A9,Automotive MCU Quad-Core QFN-64,WH-FRA-01,LOT-2026-C15,220,110,0,0,50,12800.00,Critical Semiconductor
+PHARMA-VACCINE-B,Ultra-Chilled mRNA Formulation -70C,WH-FRA-01,LOT-2026-V55,600,200,50,0,100,8500.00,Cryo Pharma
+PHARMA-VACCINE-B,Ultra-Chilled mRNA Formulation -70C,WH-MIL-02,LOT-2026-V59,400,120,0,0,60,8500.00,Cryo Pharma
+AERO-SENSOR-X1,Turbine Vibration Transducer Grade-A,WH-ZUR-04,LOT-2026-A11,180,40,0,0,30,24000.00,Aerospace Avionics
+AERO-SENSOR-X1,Turbine Vibration Transducer Grade-A,WH-FRA-01,LOT-2026-A18,110,25,0,0,20,24000.00,Aerospace Avionics
+AUTO-LIDAR-GEN3,Solid-State LiDAR Automotive Sensor,WH-ROT-03,LOT-2026-L01,310,140,5,0,60,65000.00,Autonomous Vehicle
+ROBOT-SERVO-500,Precision Brushless Servo Actuator 500W,WH-MIL-02,LOT-2026-R88,290,95,0,0,45,18500.00,Robotics Automation
+BATT-CELL-4680,High-Density NMC Cylindrical Cell 4680,WH-ROT-03,LOT-2026-B33,850,420,15,0,150,3200.00,Energy Storage
+BATT-CELL-4680,High-Density NMC Cylindrical Cell 4680,WH-ANT-05,LOT-2026-B40,600,250,0,0,100,3200.00,Energy Storage

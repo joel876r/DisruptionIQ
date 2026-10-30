@@ -1,0 +1,4 @@
+code,title,disruption_type,severity,estimated_delay_hours,details,product_sku,warehouse_code
+DIS-APX-001,Antwerp Port Customs Sensor Calibration Hold,LATE_SHIPMENT,CRITICAL,48.0,Reefer container flagged for cold-chain sensor calibration audit at Antwerp customs gate,MED-INSULIN-100,WH-FRA-01
+DIS-APX-002,Rotterdam Port Crane Telemetry Failure,LATE_SHIPMENT,HIGH,36.0,Automated stacking crane electrical failure in Berth 4 causing backlog for automotive microcontrollers,SEMI-CHIP-A9,WH-ROT-03
+DIS-APX-003,Genoa Port Alpine Rail Switch Frozen,LATE_SHIPMENT,MEDIUM,12.0,Alpine rail transit link delayed due to sub-zero switch freezing between Milan and Genoa,ROBOT-SERVO-500,WH-MIL-02

@@ -1,8 +1,8 @@
-"""Main entry point for Sol / சொல் FastAPI application.
+"""Main entry point for DisruptionIQ FastAPI application.
 
-Provides CORS-enabled REST endpoints for voice interaction with the Gemini reasoning
-engine for the Kalaignar Magalir Urimai Thittam government scheme, and serves the
-production React PWA as a single unified fullstack application.
+Provides secure, tenant-isolated REST endpoints for supply chain disruption detection,
+deterministic risk ranking, coordinated recovery planning, separation-of-duties approval,
+and simulated execution. Serves the production React frontend as a unified single-port application.
 """
 
 from __future__ import annotations
@@ -15,70 +15,84 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.routes import router as voice_router
-from config import settings
+from backend.database import init_db, SessionLocal
+from backend.seed import seed_database
+from backend.routes import router as api_router
 
 # Setup standard logging format
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-logger = logging.getLogger("sol.main")
+logger = logging.getLogger("disruptioniq.main")
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application instance.
-
-    Sets up OpenAPI metadata, mounts CORS middleware, registers voice interaction routes,
-    and mounts the built React frontend static assets for unified single-port hosting.
-
-    Returns:
-        Configured FastAPI application instance.
-    """
-    application = FastAPI(
-        title=settings.PROJECT_NAME,
-        version=settings.VERSION,
-        description=settings.DESCRIPTION,
+    """Create and configure the DisruptionIQ FastAPI application instance."""
+    app = FastAPI(
+        title="DisruptionIQ API",
+        version="1.0.0",
+        description="From Delivery Delays to Recovery Plans — Multi-Company Supply Chain Resilience Platform",
         docs_url="/docs",
         redoc_url="/redoc",
     )
 
-    # Configure CORS explicitly to enable seamless Web Speech PWA frontend communication
-    application.add_middleware(
+    # Initialize DB schema & seed default demo accounts on startup
+    init_db()
+    with SessionLocal() as db:
+        seed_database(db)
+
+    # Configure CORS explicitly to enable local React Vite frontend development & production
+    allowed_origins = os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000",
+    ).split(",")
+
+    app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.ALLOWED_ORIGINS + ["*"],  # Permits local development PWA ports
+        allow_origins=[origin.strip() for origin in allowed_origins if origin.strip()] + ["*"],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["*"],
     )
 
-    # Include routes both at /api prefix and root for maximum flexibility and automated evaluators
-    application.include_router(voice_router, prefix="/api")
-    application.include_router(voice_router, prefix="", include_in_schema=False)
+    # Health check endpoints
+    @app.get("/health")
+    @app.get("/api/health")
+    def health_check():
+        return {
+            "status": "healthy",
+            "service": "DisruptionIQ",
+            "version": "1.0.0",
+            "environment": os.getenv("ENVIRONMENT", "development"),
+        }
 
-    # Mount static assets and serve production React PWA directly from FastAPI for single unified Fullstack port
+    # Mount API router
+    app.include_router(api_router, prefix="/api")
+
+    # Mount static assets and serve production React PWA directly from FastAPI if dist/ exists
     dist_dir = os.path.join(os.path.dirname(__file__), "dist")
     if os.path.exists(dist_dir):
         assets_dir = os.path.join(dist_dir, "assets")
         if os.path.exists(assets_dir):
-            application.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+            app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
-        @application.get("/", include_in_schema=False)
-        async def serve_index() -> FileResponse:
-            """Serve the single-page application entry point."""
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_spa(full_path: str):
+            """Fallback single-page-app route."""
+            target_path = os.path.join(dist_dir, full_path)
+            if os.path.isfile(target_path):
+                return FileResponse(target_path)
             return FileResponse(os.path.join(dist_dir, "index.html"))
 
-    logger.info("Sol FastAPI application successfully initialized with fullstack frontend mount.")
-    return application
+    logger.info("DisruptionIQ FastAPI application successfully initialized.")
+    return app
 
 
 app = create_app()
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=(settings.ENVIRONMENT == "development"),
-    )
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    uvicorn.run("main:app", host=host, port=port, reload=False)

@@ -75,6 +75,13 @@ Thumbs.db
 *.swo
 *~
 
+# SQLite Database
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
 # Logs & Temporary Files
 logs/
 *.log

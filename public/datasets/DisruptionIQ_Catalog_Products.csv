@@ -1,0 +1,9 @@
+sku,name,category,criticality,unit_cost,selling_price,shelf_life_days,min_remaining_shelf_life_days,handling_restrictions
+MED-INSULIN-100,Insulin Glargine 100U Cold-Chain,Cold Chain Biopharma,CRITICAL,2800.00,4250.00,365,60,Cold Chain 2-8C DO NOT FREEZE
+MED-STENT-02,Drug-Eluting Cardiac Stent Cobalt,Surgical Implant,CRITICAL,22000.00,38000.00,730,90,Sterile Medical Grade Class III
+SEMI-CHIP-A9,Automotive MCU Quad-Core QFN-64,Critical Semiconductor,CRITICAL,8200.00,12800.00,1825,180,Anti-Static ESD Sensitive
+PHARMA-VACCINE-B,Ultra-Chilled mRNA Formulation -70C,Cryo Pharma,CRITICAL,5500.00,8500.00,180,45,Ultra-Low Temp Freezer -70C
+AERO-SENSOR-X1,Turbine Vibration Transducer Grade-A,Aerospace Avionics,CRITICAL,15000.00,24000.00,3650,365,FAA / EASA Traceable
+AUTO-LIDAR-GEN3,Solid-State LiDAR Automotive Sensor,Autonomous Vehicle,CRITICAL,42000.00,65000.00,1095,90,Optical Class 1 Eye-Safe
+ROBOT-SERVO-500,Precision Brushless Servo Actuator 500W,Robotics Automation,CRITICAL,11500.00,18500.00,2190,120,Precision Enclosed IP67
+BATT-CELL-4680,High-Density NMC Cylindrical Cell 4680,Energy Storage,CRITICAL,2100.00,3200.00,730,90,UN3480 Lithium-Ion Hazardous
